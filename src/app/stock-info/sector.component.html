@@ -1,0 +1,92 @@
+<div class="stock-info-banner">
+  <h2>Sector Management</h2>
+</div>
+
+<div class="stock-info-header-controls">
+  <div class="left-controls">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        [(ngModel)]="filterSector" 
+        (input)="onFilterChange()" 
+        placeholder="Filter by sector..." 
+      />
+      <button *ngIf="filterSector" class="clear-btn" (click)="filterSector = ''; onFilterChange()">×</button>
+    </div>
+  </div>
+  
+  <div class="right-controls">
+    <button class="add-btn" (click)="showAddModal = true" title="Add Sector">
+      <span>+</span> Add Sector
+    </button>
+    <button *ngIf="filterSector" class="clear-all-btn" (click)="clearFilters()" title="Clear all filters">
+      Clear All
+    </button>
+  </div>
+</div>
+
+<div *ngIf="loading && filteredSectors.length === 0" class="loading-indicator">Loading...</div>
+
+<!-- Sector Table -->
+<table class="stock-info-table finviz-style" *ngIf="filteredSectors.length > 0">
+  <thead>
+    <tr>
+      <th class="sortable-header" (click)="sortByColumn('sector')">
+        Sector {{ getSortIcon('sector') }}
+      </th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let sector of filteredSectors; let i = index" class="stock-row">
+      <td class="sector-cell">{{ sector.sector }}</td>
+      <td class="actions-cell">
+        <button class="action-btn edit-btn" (click)="editSector(i)" title="Edit">
+          <span>✏️</span>
+        </button>
+        <button class="action-btn delete-btn" (click)="deleteSector(i)" title="Delete">
+          <span>🗑️</span>
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div *ngIf="!loading && filteredSectors.length === 0" class="no-data">
+  <p>No sectors found matching your filters.</p>
+</div>
+
+<!-- Add Sector Modal -->
+<div class="modal-backdrop" *ngIf="showAddModal">
+  <div class="modal">
+    <h3>Add Sector</h3>
+    <form (ngSubmit)="addSector()">
+      <div class="form-group">
+        <label>Sector Name</label>
+        <input type="text" [(ngModel)]="newSector" name="sector" placeholder="Enter sector name" required />
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="save-btn">Save</button>
+        <button type="button" class="cancel-btn" (click)="closeAddModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Sector Modal -->
+<div class="modal-backdrop" *ngIf="showEditModal" (click)="cancelEdit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>Edit Sector</h3>
+    <form (ngSubmit)="saveEdit()">
+      <div class="form-group">
+        <label>Sector Name</label>
+        <input type="text" [(ngModel)]="editingSector" name="editingSector" placeholder="Enter sector name" required />
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="save-btn">Save</button>
+        <button type="button" class="cancel-btn" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div> 

@@ -1,0 +1,356 @@
+.user-grid {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(25, 118, 210, 0.08);
+  padding: 0.5rem 0.5rem;
+  max-width: 1200px;
+  margin: 0.5rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-sizing: border-box;
+
+  h2 {
+    color: #1976d2;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.3px;
+    text-align: center;
+  }
+
+  .user-filter {
+    width: 100%;
+    padding: 0.2rem 0.4rem;
+    margin-bottom: 0.3rem;
+    border: 1px solid #e3eafc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #f7fafd;
+    color: #1976d2;
+    box-shadow: 0 1px 4px rgba(25, 118, 210, 0.04);
+    outline: none;
+    transition: border 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      border: 1.5px solid #1976d2;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+    }
+  }
+
+  .loading-indicator {
+    text-align: center;
+    padding: 0.5rem;
+    color: #1976d2;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  .user-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #f7fafd;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(25, 118, 210, 0.04);
+    font-size: 0.97rem;
+    overflow: hidden;
+    table-layout: fixed;
+    word-break: break-word;
+    margin-bottom: 0.3rem;
+
+    th, td {
+      padding: 0.2rem 0.4rem;
+      text-align: left;
+      border-bottom: 1px solid #e3eafc;
+    }
+
+    th {
+      background: #e3eafc;
+      color: #1976d2;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.3px;
+    }
+
+    td {
+      color: #1976d2;
+      font-size: 0.9rem;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fff;
+    }
+
+    tbody tr:nth-child(odd) {
+      background: #f0f6ff;
+    }
+
+    tr:hover {
+      background-color: #f0f6ff;
+      transition: background-color 0.2s ease;
+    }
+
+    button {
+      background: #e3eafc;
+      color: #1976d2;
+      border: none;
+      border-radius: 5px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 0.3rem;
+      transition: background 0.2s, color 0.2s;
+
+      &:hover {
+        background: #1976d2;
+        color: #fff;
+      }
+    }
+
+    .add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+      padding: 10px 28px;
+      background: linear-gradient(100deg, #43e97b 0%, #38f9d7 50%, #1976d2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 32px;
+      font-size: 1.12rem;
+      font-weight: 600;
+      letter-spacing: 0.7px;
+      cursor: pointer;
+      box-shadow: 0 6px 24px 0 rgba(67, 233, 123, 0.18), 0 1.5px 8px 0 rgba(25, 118, 210, 0.10);
+      transition: background 0.3s, box-shadow 0.3s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+
+      &::before {
+        content: '+';
+        display: inline-block;
+        font-size: 1.4em;
+        font-weight: bold;
+        margin-right: 8px;
+        color: #fff;
+        background: none;
+        filter: drop-shadow(0 0 6px #43e97b);
+        transition: transform 0.3s cubic-bezier(.4,2,.6,1), filter 0.3s;
+      }
+
+      &:hover {
+        background: linear-gradient(100deg, #1976d2 0%, #43e97b 100%);
+        box-shadow: 0 10px 32px 0 rgba(67, 233, 123, 0.22), 0 2px 12px 0 rgba(25, 118, 210, 0.16);
+        transform: translateY(-3px) scale(1.06);
+      }
+
+      &:hover::before {
+        transform: scale(1.25) rotate(-12deg);
+        filter: drop-shadow(0 0 12px #43e97b) brightness(1.2);
+      }
+    }
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(25, 118, 210, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(25, 118, 210, 0.18);
+      padding: 32px 24px 24px 24px;
+      min-width: 320px;
+      max-width: 90vw;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+
+      h3 {
+        margin-top: 0;
+        margin-bottom: 18px;
+        font-size: 1.3rem;
+        color: #1976d2;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+
+        label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 600;
+          color: #1976d2;
+          font-size: 0.9rem;
+        }
+
+        input, select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #e3eafc;
+          border-radius: 6px;
+          font-size: 1rem;
+          box-sizing: border-box;
+          background: #f7fafd;
+          color: #1976d2;
+          transition: border 0.2s, box-shadow 0.2s;
+
+          &:focus {
+            outline: none;
+            border: 1.5px solid #1976d2;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+          }
+
+          &::placeholder {
+            color: #95a5a6;
+          }
+        }
+
+        select {
+          cursor: pointer;
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+          background-position: right 8px center;
+          background-repeat: no-repeat;
+          background-size: 16px;
+          padding-right: 40px;
+        }
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 20px;
+
+        button {
+          padding: 6px 18px;
+          border-radius: 6px;
+          border: none;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: background 0.2s;
+
+          &[type="submit"] {
+            background: #1976d2;
+            color: #fff;
+
+            &:hover {
+              background: #43e97b;
+              color: #fff;
+            }
+          }
+
+          &[type="button"] {
+            background: #e3eafc;
+            color: #1976d2;
+
+            &:hover {
+              background: #b3d1fa;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0.5rem 0 0 0;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #e3eafc;
+      border-radius: 3px;
+    }
+
+    button {
+      background: #e3eafc;
+      color: #1976d2;
+      border: 1px solid #b6c7e6;
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 4px rgba(25, 118, 210, 0.06);
+      margin: 0 1px;
+      white-space: nowrap;
+
+      &:hover:not(:disabled),
+      &.active {
+        background: linear-gradient(90deg, #1976d2 0%, #43e97b 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .pagination-info {
+      margin-left: 1rem;
+      color: #1976d2;
+      font-weight: 500;
+      font-size: 1.08rem;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 700px) {
+  .user-grid {
+    padding: 1rem 0.5rem;
+    max-width: 98vw;
+    
+    .user-table {
+      th, td {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.95rem;
+      }
+    }
+    
+    .modal-backdrop .modal {
+      padding: 20px;
+      margin: 10px;
+    }
+    
+    .pagination-controls {
+      flex-wrap: wrap;
+      gap: 6px;
+      
+      button {
+        padding: 6px 10px;
+        font-size: 13px;
+      }
+    }
+  }
+} 

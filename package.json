@@ -5,8 +5,17 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "copy-to-api": "xcopy /E /I /Y dist\\StockUpdate\\browser\\* ..\\StockWebApi\\static\\",
+    "copy-to-api-unix": "copyfiles -f dist/StockUpdate/browser/* ../StockWebApi/static/",
+    "copy-api-to-d": "xcopy /E /I /Y /EXCLUDE:copy-exclude.txt ..\\StockWebApi\\* D:\\friendfortpolio\\",
+    "copy-api-to-d-unix": "copyfiles -f ../StockWebApi/* D:/friendfortpolio/ --exclude=**/__pycache__/** --exclude=**/.vscode/**",
+    "build-and-copy": "npm run build && npm run copy-to-api",
+    "build-prod-and-copy": "npm run build:prod && npm run copy-to-api",
+    "deploy": "npm run build:prod && npm run copy-to-api",
+    "deployprod": "npm run build:prod && npm run copy-to-api && npm run copy-api-to-d"
   },
   "prettier": {
     "overrides": [
@@ -20,12 +29,18 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/cdk": "^20.1.3",
     "@angular/common": "^20.1.0",
     "@angular/compiler": "^20.1.0",
     "@angular/core": "^20.1.0",
     "@angular/forms": "^20.1.0",
+    "@angular/material": "^20.1.3",
+    "@angular/material-moment-adapter": "^20.1.3",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
+    "@ng-select/ng-select": "^15.1.3",
+    "@types/chart.js": "^2.9.41",
+    "chart.js": "^4.5.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
@@ -35,6 +50,7 @@
     "@angular/cli": "^20.1.1",
     "@angular/compiler-cli": "^20.1.0",
     "@types/jasmine": "~5.1.0",
+    "copyfiles": "^2.4.1",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

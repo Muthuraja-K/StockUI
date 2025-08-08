@@ -1,0 +1,20 @@
+Use kebab-case for all file names (e.g., user-profile.component.ts).
+Always generate components and directives with `standalone: true`.
+Use `ChangeDetectionStrategy.OnPush` for all components.
+Use Angular’s `inject()` function for service injection.
+Avoid using `any`; define interfaces for type safety.
+Use `NgOptimizedImage` for efficient image loading.
+Use `trackBy` with `*ngFor` for performance.
+Use `async` pipe for observables in templates.
+Avoid direct DOM manipulation; rely on Angular’s templating system.
+Use lazy loading for feature modules.
+Use control flow syntax (`@if`, `@for`) instead of `*ngIf`, `*ngFor`.
+Use semantic HTML and ARIA attributes for accessibility.
+Use separate `.html` and `.scss` files for templates and styles.
+Organize imports: Angular core → RxJS → app modules → relative paths.
+Use single quotes for strings and 2-space indentation.
+Use pure pipes for expensive computations.
+Avoid magic numbers and strings; use constants or enums.
+Use Angular form validation or custom validators.
+Follow Arrange-Act-Assert pattern in unit tests.
+Sanitize dynamic content properly; avoid `innerHTML`.

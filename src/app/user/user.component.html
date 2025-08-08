@@ -1,0 +1,115 @@
+<div class="user-grid">
+  <h2>User Management</h2>
+  <input type="text" [(ngModel)]="filterUsername" (input)="onFilterChange()" placeholder="Filter by username..." class="user-filter" />
+  <div *ngIf="loading" class="loading-indicator">Loading...</div>
+  <table class="user-table" *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Password</th>
+        <th>
+          Actions
+          <button class="add-btn" (click)="showAddModal = true" title="Add User"></button>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of filteredUsers; let i = index">
+        <td>{{ user.firstname }}</td>
+        <td>{{ user.lastname }}</td>
+        <td>{{ user.username }}</td>
+        <td>{{ user.role }}</td>
+        <td>{{ user.password }}</td>
+        <td>
+          <button (click)="editUser(i)" title="Edit"><span aria-hidden="true">✏️</span></button>
+          <button (click)="deleteUser(i)" title="Delete"><span aria-hidden="true">🗑️</span></button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <!-- Add User Modal -->
+  <div class="modal-backdrop" *ngIf="showAddModal">
+    <div class="modal">
+      <h3>Add User</h3>
+      <form (ngSubmit)="addUser()">
+        <div class="form-group">
+          <label for="firstname">First Name:</label>
+          <input type="text" id="firstname" [(ngModel)]="newUser.firstname" name="firstname" placeholder="First Name" required />
+        </div>
+        <div class="form-group">
+          <label for="lastname">Last Name:</label>
+          <input type="text" id="lastname" [(ngModel)]="newUser.lastname" name="lastname" placeholder="Last Name" required />
+        </div>
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" [(ngModel)]="newUser.username" name="username" placeholder="Username" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" [(ngModel)]="newUser.password" name="password" placeholder="Password" required />
+        </div>
+        <div class="form-group">
+          <label for="role">Role:</label>
+          <select id="role" [(ngModel)]="newUser.role" name="role" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="submit">Save</button>
+          <button type="button" (click)="closeAddModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Edit User Modal -->
+  <div class="modal-backdrop" *ngIf="showEditModal">
+    <div class="modal">
+      <h3>Edit User</h3>
+      <form (ngSubmit)="saveEdit()">
+        <div class="form-group">
+          <label for="edit-firstname">First Name:</label>
+          <input type="text" id="edit-firstname" [(ngModel)]="editingUser.firstname" name="editFirstname" placeholder="First Name" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-lastname">Last Name:</label>
+          <input type="text" id="edit-lastname" [(ngModel)]="editingUser.lastname" name="editLastname" placeholder="Last Name" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-username">Username:</label>
+          <input type="text" id="edit-username" [(ngModel)]="editingUser.username" name="editUsername" placeholder="Username" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-password">Password (leave blank to keep current):</label>
+          <input type="password" id="edit-password" [(ngModel)]="editingUser.password" name="editPassword" placeholder="New Password" />
+        </div>
+        <div class="form-group">
+          <label for="edit-role">Role:</label>
+          <select id="edit-role" [(ngModel)]="editingUser.role" name="editRole" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="submit">Save</button>
+          <button type="button" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Pagination -->
+  <div class="pagination-controls">
+    <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+    <ng-container *ngFor="let page of [].constructor(pageCount); let i = index">
+      <button (click)="goToPage(i + 1)" [class.active]="currentPage === (i + 1)">{{ i + 1 }}</button>
+    </ng-container>
+    <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage === pageCount">Next</button>
+    <span class="pagination-info">Page {{ currentPage }} of {{ pageCount }}</span>
+  </div>
+</div> 

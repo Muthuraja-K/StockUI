@@ -1,0 +1,88 @@
+<div class="earning-summary-banner">
+  <h3>Earning Summary</h3>
+</div>
+<div class="earning-summary-wrapper">
+  <div class="earning-summary-controls modern-search">
+    <!-- Sector Multi-Select -->
+    <div class="search-box sector-multi-select">
+      <span class="search-icon">🏢</span>
+      <div class="sector-chips">
+        <ng-container *ngIf="isAllSectorsSelected(); else sectorList">
+          <span class="sector-chip selected" (click)="clearFilters()">
+            All
+          </span>
+        </ng-container>
+        <ng-template #sectorList>
+          <span *ngFor="let sector of sectors" 
+                class="sector-chip" 
+                [class.selected]="isSectorSelected(sector)"
+                (click)="toggleSector(sector)">
+            {{ sector }}
+          </span>
+        </ng-template>
+      </div>
+    </div>
+    
+    <!-- Date From Filter -->
+    <div class="search-box">
+      <span class="search-icon">📅</span>
+      <input type="date" [(ngModel)]="dateFrom" (change)="onDateFilterChange()" placeholder="Date From" />
+    </div>
+    
+    <!-- Date To Filter -->
+    <div class="search-box">
+      <span class="search-icon">📅</span>
+      <input type="date" [(ngModel)]="dateTo" (change)="onDateFilterChange()" placeholder="Date To" />
+    </div>
+    
+    <!-- Clear All Button -->
+    <button *ngIf="selectedSectors.length > 0 || dateFrom || dateTo" 
+            class="clear-all-btn" 
+            (click)="clearFilters()" 
+            aria-label="Clear all filters">
+      Clear All
+    </button>
+  </div>
+
+  <!-- Date Range Error Display -->
+  <div *ngIf="dateRangeError" class="date-error">
+    <span class="error-icon">⚠️</span>
+    <span class="error-message">{{ dateRangeError }}</span>
+  </div>
+  
+  <div *ngIf="loading" class="loading-indicator">Loading...</div>
+  
+  <!-- Earning Grid -->
+  <div class="earning-grid" *ngIf="!loading">
+    <div *ngIf="earnings.length === 0" class="no-records">No records found</div>
+    
+    <div *ngIf="earnings.length > 0" class="earning-table-container">
+      <table class="earning-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Current Price</th>
+            <th>Earning Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let earning of earnings">
+            <td>{{ earning.ticker }}</td>
+            <td>{{ earning.currentPrice }}</td>
+            <td>{{ earning.earningDate }}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Pagination Controls -->
+      <div class="pagination-controls">
+        <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <ng-container *ngFor="let page of getVisiblePages()">
+          <button (click)="goToPage(page)" [class.active]="currentPage === page">{{ page }}</button>
+        </ng-container>
+        <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage === pageCount">Next</button>
+        <span class="pagination-info">Page {{ currentPage }} of {{ pageCount }}</span>
+      </div>
+    </div>
+  </div>
+</div> 
