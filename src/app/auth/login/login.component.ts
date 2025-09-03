@@ -36,7 +36,7 @@ export class LoginComponent {
         this.isLoading = false;
         if (response.success) {
           // Navigate to stock history page for all users
-          this.router.navigate(['/stock-details']);
+          this.router.navigate(['/stock-history']);
         } else {
           this.errorMessage = response.message || 'Login failed';
         }

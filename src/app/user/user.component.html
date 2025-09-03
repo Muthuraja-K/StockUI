@@ -1,115 +1,267 @@
-<div class="user-grid">
-  <h2>User Management</h2>
-  <input type="text" [(ngModel)]="filterUsername" (input)="onFilterChange()" placeholder="Filter by username..." class="user-filter" />
-  <div *ngIf="loading" class="loading-indicator">Loading...</div>
-  <table class="user-table" *ngIf="!loading">
-    <thead>
-      <tr>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Username</th>
-        <th>Role</th>
-        <th>Password</th>
-        <th>
-          Actions
-          <button class="add-btn" (click)="showAddModal = true" title="Add User"></button>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let user of filteredUsers; let i = index">
-        <td>{{ user.firstname }}</td>
-        <td>{{ user.lastname }}</td>
-        <td>{{ user.username }}</td>
-        <td>{{ user.role }}</td>
-        <td>{{ user.password }}</td>
-        <td>
-          <button (click)="editUser(i)" title="Edit"><span aria-hidden="true">✏️</span></button>
-          <button (click)="deleteUser(i)" title="Delete"><span aria-hidden="true">🗑️</span></button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  
-  <!-- Add User Modal -->
-  <div class="modal-backdrop" *ngIf="showAddModal">
+<div class="user-management">
+  <div class="user-banner">
+    <h2>{{ getPageTitle() }}</h2>
+    <p class="page-description">{{ getPageDescription() }}</p>
+  </div>
+
+  <div class="user-table-wrapper">
+    <!-- Header Controls - Only show for admin users -->
+    @if (canSeeAllUsers) {
+      <div class="user-header-controls">
+        <div class="left-controls">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" [(ngModel)]="filterUsername" placeholder="Filter by username..." (keyup.enter)="searchUsers()" />
+            @if (filterUsername) {
+              <button class="clear-btn" (click)="filterUsername=''" aria-label="Clear username search">&times;</button>
+            }
+          </div>
+        </div>
+        
+        <div class="right-controls">
+          <button class="search-btn" (click)="searchUsers()" aria-label="Search users">
+            Search
+          </button>
+          @if (filterUsername) {
+            <button class="clear-all-btn" (click)="clearFilter()" aria-label="Clear all filters">
+              Clear All
+            </button>
+          }
+          @if (canAddUsers) {
+            <button class="btn btn-primary" (click)="showAddForm()">Add New User</button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- User Profile View for Regular Users -->
+    @if (!canSeeAllUsers && !loading) {
+      <div class="user-profile-view">
+        <div class="profile-card">
+          <div class="profile-header">
+            <h3>My Profile</h3>
+          </div>
+          <div class="profile-content">
+            <div class="profile-field">
+              <label>Username:</label>
+              <span>{{ currentUser?.username }}</span>
+            </div>
+            <div class="profile-field">
+              <label>Role:</label>
+              <span class="role-badge" [ngClass]="getRoleClass(currentUser?.role || 'user')">
+                {{ currentUser?.role }}
+              </span>
+            </div>
+            <div class="profile-field">
+              <label>First Name:</label>
+              <span>{{ currentUser?.firstname || 'N/A' }}</span>
+            </div>
+            <div class="profile-field">
+              <label>Last Name:</label>
+              <span>{{ currentUser?.lastname || 'N/A' }}</span>
+            </div>
+            <div class="profile-actions">
+                          @if (currentUser) {
+              <button class="btn btn-primary" (click)="showEditForm(currentUser)">
+                Edit Profile
+              </button>
+            }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Users Table - Only show for admin users -->
+    @if (canSeeAllUsers && !loading) {
+      <div class="users-table">
+        <table style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users; track user.username) {
+              <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.firstname || 'N/A' }}</td>
+              <td>{{ user.lastname || 'N/A' }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  @if (canEditUser(user)) {
+                    <button class="btn-icon btn-edit" (click)="showEditForm(user)" title="Edit User">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  }
+                  @if (canDeleteUser(user)) {
+                    <button class="btn-icon btn-delete" (click)="deleteUser(user.username)" title="Delete User">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="loading">
+      <p>Loading users...</p>
+    </div>
+  }
+
+  <!-- Add User Form - Only show for admin users -->
+  @if (showAddUserForm && canAddUsers) {
     <div class="modal">
-      <h3>Add User</h3>
-      <form (ngSubmit)="addUser()">
-        <div class="form-group">
-          <label for="firstname">First Name:</label>
-          <input type="text" id="firstname" [(ngModel)]="newUser.firstname" name="firstname" placeholder="First Name" required />
+      <div class="modal-content">
+        <h3>Add New User</h3>
+        <form (ngSubmit)="addUser()">
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" [(ngModel)]="newUser.username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" [(ngModel)]="newUser.password" name="password" required>
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            @if (canChangeRole) {
+              <select [(ngModel)]="newUser.role" name="role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            }
+            @if (!canChangeRole) {
+              <input type="text" [value]="newUser.role" readonly>
+            }
+          </div>
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" [(ngModel)]="newUser.firstname" name="firstname">
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" [(ngModel)]="newUser.lastname" name="lastname">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add User</button>
+            <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Edit User Form -->
+  @if (showEditUserForm) {
+    <div class="modal">
+      <div class="modal-content">
+        <h3>Edit User: {{ selectedUser?.username }}</h3>
+        <form (ngSubmit)="updateUser()">
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" [(ngModel)]="editUser.username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="editUser.password" name="password" placeholder="Leave blank to keep current">
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            @if (canChangeRole) {
+              <select [(ngModel)]="editUser.role" name="role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            }
+            @if (!canChangeRole) {
+              <input type="text" [value]="editUser.role" readonly>
+            }
+          </div>
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" [(ngModel)]="editUser.firstname" name="firstname">
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" [(ngModel)]="editUser.lastname" name="lastname">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Update User</button>
+            <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Custom Confirm Modal -->
+  @if (showConfirmModal) {
+    <div class="modal-overlay" (click)="closeConfirmModal()">
+      <div class="modal-content confirm-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ confirmTitle }}</h3>
+          <button class="close-btn" (click)="closeConfirmModal()">&times;</button>
         </div>
-        <div class="form-group">
-          <label for="lastname">Last Name:</label>
-          <input type="text" id="lastname" [(ngModel)]="newUser.lastname" name="lastname" placeholder="Last Name" required />
-        </div>
-        <div class="form-group">
-          <label for="username">Username:</label>
-          <input type="text" id="username" [(ngModel)]="newUser.username" name="username" placeholder="Username" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Password:</label>
-          <input type="password" id="password" [(ngModel)]="newUser.password" name="password" placeholder="Password" required />
-        </div>
-        <div class="form-group">
-          <label for="role">Role:</label>
-          <select id="role" [(ngModel)]="newUser.role" name="role" required>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+        <div class="modal-body">
+          <p>{{ confirmMessage }}</p>
         </div>
         <div class="modal-actions">
-          <button type="submit">Save</button>
-          <button type="button" (click)="closeAddModal()">Cancel</button>
+          <button class="btn btn-danger" (click)="confirmAction()">Confirm</button>
+          <button class="btn btn-secondary" (click)="closeConfirmModal()">Cancel</button>
         </div>
-      </form>
+      </div>
     </div>
-  </div>
-  
-  <!-- Edit User Modal -->
-  <div class="modal-backdrop" *ngIf="showEditModal">
-    <div class="modal">
-      <h3>Edit User</h3>
-      <form (ngSubmit)="saveEdit()">
-        <div class="form-group">
-          <label for="edit-firstname">First Name:</label>
-          <input type="text" id="edit-firstname" [(ngModel)]="editingUser.firstname" name="editFirstname" placeholder="First Name" required />
+  }
+
+  <!-- Custom Success Modal -->
+  @if (showSuccessModal) {
+    <div class="modal-overlay" (click)="closeSuccessModal()">
+      <div class="modal-content success-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>✅ {{ successTitle }}</h3>
+          <button class="close-btn" (click)="closeSuccessModal()">&times;</button>
         </div>
-        <div class="form-group">
-          <label for="edit-lastname">Last Name:</label>
-          <input type="text" id="edit-lastname" [(ngModel)]="editingUser.lastname" name="editLastname" placeholder="Last Name" required />
-        </div>
-        <div class="form-group">
-          <label for="edit-username">Username:</label>
-          <input type="text" id="edit-username" [(ngModel)]="editingUser.username" name="editUsername" placeholder="Username" required />
-        </div>
-        <div class="form-group">
-          <label for="edit-password">Password (leave blank to keep current):</label>
-          <input type="password" id="edit-password" [(ngModel)]="editingUser.password" name="editPassword" placeholder="New Password" />
-        </div>
-        <div class="form-group">
-          <label for="edit-role">Role:</label>
-          <select id="edit-role" [(ngModel)]="editingUser.role" name="editRole" required>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+        <div class="modal-body">
+          <p>{{ successMessage }}</p>
         </div>
         <div class="modal-actions">
-          <button type="submit">Save</button>
-          <button type="button" (click)="cancelEdit()">Cancel</button>
+          <button class="btn btn-primary" (click)="closeSuccessModal()">OK</button>
         </div>
-      </form>
+      </div>
     </div>
-  </div>
-  
-  <!-- Pagination -->
-  <div class="pagination-controls">
-    <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
-    <ng-container *ngFor="let page of [].constructor(pageCount); let i = index">
-      <button (click)="goToPage(i + 1)" [class.active]="currentPage === (i + 1)">{{ i + 1 }}</button>
-    </ng-container>
-    <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage === pageCount">Next</button>
-    <span class="pagination-info">Page {{ currentPage }} of {{ pageCount }}</span>
-  </div>
-</div> 
+  }
+
+  <!-- Custom Error Modal -->
+  @if (showErrorModal) {
+    <div class="modal-overlay" (click)="closeErrorModal()">
+      <div class="modal-content error-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>❌ {{ errorTitle }}</h3>
+          <button class="close-btn" (click)="closeErrorModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>{{ errorMessage }}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" (click)="closeErrorModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

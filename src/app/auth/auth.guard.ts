@@ -25,9 +25,18 @@ export class AuthGuard implements CanActivate {
           const requiresAdmin = route.data['requiresAdmin'];
           if (requiresAdmin && user.role !== 'admin') {
             // User is not admin but route requires admin access
-            this.router.navigate(['/stock-details']);
+            this.router.navigate(['/dashboard']);
             return false;
           }
+          
+          // Check if route requires superuser access
+          const requiresSuperuser = route.data['requiresSuperuser'];
+          if (requiresSuperuser && user.username !== 'superuser') {
+            // User is not superuser but route requires superuser access
+            this.router.navigate(['/dashboard']);
+            return false;
+          }
+          
           return true;
         } else {
           // User is not authenticated

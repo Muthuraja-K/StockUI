@@ -1,12 +1,15 @@
 import { Routes } from '@angular/router';
-import { StockDetailsComponent } from './stock-info/stock-details.component';
-import { StocksComponent } from './stock-info/stocks.component';
-import { SectorComponent } from './stock-info/sector.component';
+import { StockHistoryComponent } from './stockhistory/stock-history.component';
+import { StocksComponent } from './stocks/stocks.component';
+import { SectorComponent } from './sector/sector.component';
 import { UserComponent } from './user/user.component';
-import { StockSummaryComponent } from './stock-summary/stock-summary.component';
-import { EarningSummaryComponent } from './earning-summary/earning-summary.component';
+import { StockSummaryComponent } from './stocksummary/stock-summary.component';
+import { EarningSummaryComponent } from './earningsummary/earning-summary.component';
+import { StockPredictionComponent } from './stock-prediction/stock-prediction.component';
 import { LoginComponent } from './auth/login/login.component';
-import { DownloadComponent } from './download/download/download.component';
+import { DownloadComponent } from './download/download.component';
+import { AdminCacheComponent } from './admin-cache/admin-cache.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 import { AuthGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
@@ -32,11 +35,22 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { requiresAdmin: true }
   },
+  { 
+    path: 'admin-cache', 
+    component: AdminCacheComponent, 
+    canActivate: [AuthGuard],
+    data: { requiresAdmin: true }
+  },
   
   // User-accessible routes
   { 
-    path: 'stock-details', 
-    component: StockDetailsComponent, 
+    path: 'dashboard', 
+    component: DashboardComponent, 
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'stock-history', 
+    component: StockHistoryComponent, 
     canActivate: [AuthGuard]
   },
   { 
@@ -50,9 +64,15 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   { 
+    path: 'stock-prediction', 
+    component: StockPredictionComponent, 
+    canActivate: [AuthGuard]
+  },
+  { 
     path: 'download', 
     component: DownloadComponent, 
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard],
+    data: { requiresSuperuser: true }
   },
   
   // Redirect to login for any unknown routes

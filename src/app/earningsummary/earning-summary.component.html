@@ -1,0 +1,432 @@
+<div class="earning-summary-banner">
+  <h3>Earning Summary</h3>
+</div>
+<div class="earning-summary-wrapper">
+  <div class="earning-summary-controls">
+    <div class="left-controls">
+      <!-- Sector Multi-Select -->
+      <div class="search-box sector-multi-select">
+        <span class="search-icon">🏢</span>
+        <div class="sector-chips">
+          <ng-container *ngIf="isAllSectorsSelected(); else sectorList">
+            <span class="sector-chip selected" (click)="clearFilters()">
+              All
+            </span>
+          </ng-container>
+          <ng-template #sectorList>
+            <span *ngFor="let sector of sectors" 
+                  class="sector-chip" 
+                  [class.selected]="isSectorSelected(sector)"
+                  (click)="toggleSector(sector)">
+              {{ sector }}
+            </span>
+          </ng-template>
+        </div>
+      </div>
+      
+      <!-- Time Period Filter -->
+      <div class="time-period-filter">
+        <label class="filter-label">Period:</label>
+        <div class="period-buttons">
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1D'"
+            (click)="selectPeriod('1D')">
+            1D
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1W'"
+            (click)="selectPeriod('1W')">
+            1W
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1M'"
+            (click)="selectPeriod('1M')">
+            1M
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === 'custom'"
+            (click)="selectPeriod('custom')">
+            Custom
+          </button>
+        </div>
+      </div>
+      
+      <!-- Date From Filter (only visible for custom period) -->
+      <div class="search-box" [class.hidden]="selectedPeriod !== 'custom'">
+        <span class="search-icon">📅</span>
+        <input type="date" [(ngModel)]="dateFrom" (change)="onDateFilterChange()" placeholder="Date From" />
+      </div>
+      
+      <!-- Date To Filter (only visible for custom period) -->
+      <div class="search-box" [class.hidden]="selectedPeriod !== 'custom'">
+        <span class="search-icon">📅</span>
+        <input type="date" [(ngModel)]="dateTo" (change)="onDateFilterChange()" placeholder="Date To" />
+      </div>
+      
+      <!-- Search Button -->
+      <button class="search-btn" (click)="performSearch()" [disabled]="loading">
+        <span class="search-icon">🔍</span>
+        Search
+      </button>
+      
+      <button class="refresh-btn" (click)="refreshData()" [disabled]="loading" title="Refresh Data">
+        <span class="refresh-icon">🔄</span>
+        Refresh
+      </button>
+    </div>
+    
+    <div class="right-controls">
+      <!-- Clear All Button -->
+      <button *ngIf="selectedSectors.length > 0 || selectedPeriod !== '1W' || dateFrom || dateTo" 
+              class="clear-all-btn" 
+              (click)="clearFilters()" 
+              aria-label="Clear all filters">
+        Clear All
+      </button>
+    </div>
+  </div>
+
+  <!-- Date Range Error Display -->
+  <div *ngIf="dateRangeError" class="date-error">
+    <span class="error-icon">⚠️</span>
+    <span class="error-message">{{ dateRangeError }}</span>
+  </div>
+  
+  <!-- Loading Indicator -->
+  <div *ngIf="loading" class="loading-indicator">
+    <div class="spinner"></div>
+    <p>Loading earning data...</p>
+  </div>
+
+  <!-- No Search Performed Message -->
+  <div *ngIf="!loading && !hasSearched" class="no-search-message">
+    <div class="message-content">
+      <span class="message-icon">🔍</span>
+      <h3>Ready to Search</h3>
+      <p>Current filters: {{ selectedPeriod }} period{{ selectedSectors.length > 0 ? ', ' + selectedSectors.length + ' sector(s)' : '' }}{{ selectedPeriod === 'custom' ? ', ' + dateFrom + ' to ' + dateTo : '' }}</p>
+      <p>Click the Search button to find earning data.</p>
+    </div>
+  </div>
+
+  <!-- No Results Message -->
+  <div *ngIf="!loading && hasSearched && earnings.length === 0" class="no-results-message">
+    <div class="message-content">
+      <span class="message-icon">📊</span>
+      <h3>No Results Found</h3>
+      <p>No earning data found for the selected filters. Try adjusting your search criteria.</p>
+    </div>
+  </div>
+  
+  <!-- Earning Grid -->
+  <div class="earning-grid" *ngIf="!loading">
+    <div *ngIf="earnings.length === 0" class="no-records">No records found</div>
+    
+    <div *ngIf="earnings.length > 0" class="earning-table-container">
+      <table class="earning-table finviz-style">
+        <thead>
+          <tr>
+            <th class="sortable-header" (click)="sortByColumn('ticker')">
+              Ticker
+              <span *ngIf="isSorting('ticker')" class="sorting-spinner">⟳</span>
+              {{ getSortIcon('ticker') }}
+            </th>
+            <th class="sortable-header" (click)="sortByColumn('currentPrice')">
+              Price
+              <span *ngIf="isSorting('currentPrice')" class="sorting-spinner">⟳</span>
+              {{ getSortIcon('currentPrice') }}
+            </th>
+            <th class="sortable-header" (click)="sortByColumn('earningDate')">
+              Date
+              <span *ngIf="isSorting('earningDate')" class="sorting-spinner">⟳</span>
+              {{ getSortIcon('earningDate') }}
+            </th>
+                         <th class="sortable-header">
+               Previous 2 Result
+             </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let earning of filteredAndSortedEarnings" class="earning-row">
+            <td class="ticker-cell">
+              <span class="clickable-ticker" (click)="showEarningDatesPopup(earning)">{{ earning.ticker }}</span>
+            </td>
+            <td class="price-cell">{{ earning.currentPrice }}</td>
+            <td class="date-cell">
+              <span >
+                {{ earning.earningDate }}
+              </span>
+            </td>
+            <td class="last-earnings-cell">
+              <div *ngIf="earning.lastTwoEarnings && earning.lastTwoEarnings.length > 0; else noEarningsData" class="last-earnings-grid">
+                <div class="earnings-table-section">
+                  <div class="earnings-grid-header">
+                    <div class="grid-cell">Date</div>
+                    <div class="grid-cell">Close B4 Earning</div>
+                    <div class="grid-cell">After Earning</div>
+                    <div class="grid-cell">EPS</div>
+                    <div class="grid-cell">Revenue</div>
+                  </div>
+                  <div class="earnings-grid-row" *ngFor="let lastEarning of earning.lastTwoEarnings">
+                    <div class="grid-cell clickable-date" (click)="showPriceChart(earning.ticker, lastEarning.earningDate)">
+                      {{ lastEarning.earningDate || 'N/A' }}
+                    </div>
+                    
+                    <!-- Close B4 Earning Column -->
+                    <div class="grid-cell close-b4-earning-cell">
+                      <div class="mini-table">
+                        <div class="mini-table-header">
+                          <div class="mini-cell">Price</div>
+                          <div class="mini-cell">Change</div>
+                        </div>
+                        <div class="mini-table-row">
+                          <div class="mini-cell">{{ lastEarning.closeB4EarningPrice || 'N/A' }}</div>
+                          <div class="mini-cell" 
+                               [class.positive]="lastEarning.closeB4EarningChange && lastEarning.closeB4EarningChange.startsWith('+')"
+                               [class.negative]="lastEarning.closeB4EarningChange && lastEarning.closeB4EarningChange.startsWith('-')">
+                            {{ lastEarning.closeB4EarningChange || 'N/A' }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- After Earning Column -->
+                    <div class="grid-cell after-earning-cell">
+                      <div class="mini-table">
+                        <div class="mini-table-header">
+                          <div class="mini-cell">Price</div>
+                          <div class="mini-cell">Change</div>
+                        </div>
+                        <div class="mini-table-row">
+                          <div class="mini-cell">{{ lastEarning.afterEarningPrice || 'N/A' }}</div>
+                          <div class="mini-cell" 
+                               [class.positive]="lastEarning.afterEarningChange && lastEarning.afterEarningChange.startsWith('+')"
+                               [class.negative]="lastEarning.afterEarningChange && lastEarning.afterEarningChange.startsWith('-')">
+                            {{ lastEarning.afterEarningChange || 'N/A' }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- EPS Column -->
+                    <div class="grid-cell eps-column">
+                      <div class="mini-table">
+                        <div class="mini-table-header">
+                          <div class="mini-cell">Expected</div>
+                          <div class="mini-cell">Actual</div>
+                          <div class="mini-cell">Result</div>
+                        </div>
+                        <div class="mini-table-row">
+                          <div class="mini-cell expected-value">{{ lastEarning.expectedValue || 'N/A' }}</div>
+                          <div class="mini-cell actual-value" 
+                               [class.positive]="lastEarning.epsCategory === 'Beat'"
+                               [class.negative]="lastEarning.epsCategory === 'Miss'"
+                               [class.neutral]="lastEarning.epsCategory === 'Met'">
+                            {{ lastEarning.actualValue || 'N/A' }}
+                          </div>
+                          <div class="mini-cell result-value">
+                            <div class="result-category" 
+                                 [class.positive]="lastEarning.epsCategory === 'Beat'"
+                                 [class.negative]="lastEarning.epsCategory === 'Miss'"
+                                 [class.neutral]="lastEarning.epsCategory === 'Met'">
+                              {{ lastEarning.epsCategory || 'N/A' }}
+                            </div>
+                            <div class="percentage-diff" 
+                                 [class.positive]="lastEarning.percentageDifference && lastEarning.percentageDifference.startsWith('+')"
+                                 [class.negative]="lastEarning.percentageDifference && lastEarning.percentageDifference.startsWith('-')">
+                              {{ lastEarning.percentageDifference || 'N/A' }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Revenue Column -->
+                    <div class="grid-cell revenue-column">
+                      <div class="mini-table">
+                        <div class="mini-table-header">
+                          <div class="mini-cell">Expected</div>
+                          <div class="mini-cell">Actual</div>
+                          <div class="mini-cell">Result</div>
+                        </div>
+                        <div class="mini-table-row">
+                          <div class="mini-cell expected-value">{{ formatRevenueWithAbbreviation(lastEarning.expectedRevenue) }}</div>
+                          <div class="mini-cell actual-value" 
+                               [class.positive]="lastEarning.revenueCategory === 'Beat'"
+                               [class.negative]="lastEarning.revenueCategory === 'Miss'"
+                               [class.neutral]="lastEarning.revenueCategory === 'Met'">
+                            {{ formatRevenueWithAbbreviation(lastEarning.actualRevenue) }}
+                          </div>
+                          <div class="mini-cell result-value">
+                            <div class="result-category" 
+                                 [class.positive]="lastEarning.revenueCategory === 'Beat'"
+                                 [class.negative]="lastEarning.revenueCategory === 'Miss'"
+                                 [class.neutral]="lastEarning.revenueCategory === 'Met'">
+                              {{ lastEarning.revenueCategory || 'N/A' }}
+                            </div>
+                            <div class="revenue-surprise" 
+                                 [class.positive]="getRevenueSurprise(lastEarning) && getRevenueSurprise(lastEarning).startsWith('+')"
+                                 [class.negative]="getRevenueSurprise(lastEarning) && getRevenueSurprise(lastEarning).startsWith('-')">
+                              {{ getRevenueSurprise(lastEarning) }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ng-template #noEarningsData>
+                <span class="no-data">No earnings data available</span>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Earning Dates Popup -->
+        <div *ngIf="isEarningDatesPopupVisible" class="popup-overlay" (click)="closeEarningDatesPopup()">
+  <div class="popup-content" (click)="$event.stopPropagation()">
+    <div class="popup-header">
+      <h3>Earning Dates for {{ selectedTicker }}</h3>
+      <button class="close-btn" (click)="closeEarningDatesPopup()">&times;</button>
+    </div>
+    <div class="popup-body">
+      <ng-container *ngIf="selectedEarningData?.lastTwoEarnings as lastTwoEarnings">
+        <div *ngIf="lastTwoEarnings.length > 0" class="earning-dates-list">
+          <div *ngFor="let earning of lastTwoEarnings" class="earning-date-item">
+          <div class="earning-date-header">
+            <span class="earning-date">{{ earning.earningDate }}</span>
+            <span class="earning-result" 
+                  [class.positive]="earning.percentageDifference && earning.percentageDifference.startsWith('+')"
+                  [class.negative]="earning.percentageDifference && earning.percentageDifference.startsWith('-')">
+              {{ earning.percentageDifference }}
+            </span>
+          </div>
+          <div class="earning-details">
+            <div class="detail-row">
+              <span class="label">Close B4 Earning:</span>
+              <span class="value">{{ earning.closeB4EarningPrice }} ({{ earning.closeB4EarningChange }})</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">After Earning:</span>
+              <span class="value">{{ earning.afterEarningPrice }} ({{ earning.afterEarningChange }})</span>
+            </div>
+          </div>
+          <button class="view-chart-btn" (click)="showPriceChart(selectedTicker, earning.earningDate)">
+            View Price Chart
+          </button>
+        </div>
+      </div>
+      <div *ngIf="!selectedEarningData?.lastTwoEarnings || selectedEarningData?.lastTwoEarnings?.length === 0" class="no-earnings">
+        No earnings data available for this ticker.
+      </div>
+        </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- Price Chart Popup -->
+<div *ngIf="showPriceChartPopup" class="popup-overlay" (click)="closePriceChartPopup()">
+  <div class="popup-content chart-popup" (click)="$event.stopPropagation()">
+    <div class="popup-header">
+      <h3>Price Chart for {{ selectedTicker }} - {{ selectedChartDate }}</h3>
+      <button class="close-btn" (click)="closePriceChartPopup()">&times;</button>
+    </div>
+    <div class="popup-body">
+      <div *ngIf="chartLoading" class="chart-loading">Loading chart...</div>
+      <div *ngIf="!chartLoading && hasChartData()" class="chart-container">
+        <div class="chart-info">
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="label">Open:</span>
+              <span class="value">{{ priceChartData.open }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Close:</span>
+              <span class="value">{{ priceChartData.close }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">High:</span>
+              <span class="value">{{ priceChartData.high }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Low:</span>
+              <span class="value">{{ priceChartData.low }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Change:</span>
+              <span class="value" [class.positive]="priceChartData.change?.startsWith('+')" [class.negative]="priceChartData.change?.startsWith('-')">
+                {{ priceChartData.change }}
+              </span>
+            </div>
+          </div>
+          <!-- After-hours data summary -->
+          <div class="after-hours-summary" *ngIf="priceChartData?.afterHoursPoints && priceChartData.afterHoursPoints.length > 0">
+            <div class="summary-item">
+              <span class="label">After Hours:</span>
+              <span class="value">
+                <span class="after-hours-indicator available">
+                  Available
+                </span>
+                ({{ priceChartData.afterHoursPoints.length }} data points)
+              </span>
+            </div>
+            <!-- Show after-hours change if available -->
+            <div class="summary-item" *ngIf="priceChartData.afterHoursChange !== undefined">
+              <span class="label">After Hours Change:</span>
+              <span class="value" [class.positive]="priceChartData.afterHoursChange >= 0" [class.negative]="priceChartData.afterHoursChange < 0">
+                {{ priceChartData.afterHoursChange >= 0 ? '+' : '' }}{{ priceChartData.afterHoursChange?.toFixed(2) }}
+                ({{ priceChartData.afterHoursChangePercent >= 0 ? '+' : '' }}{{ priceChartData.afterHoursChangePercent?.toFixed(2) }}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-main-container">
+          <div class="chart-header">
+            <div class="chart-title">
+              <h4>Hourly Price Movement</h4>
+              <p>From market open to close on {{ selectedChartDate }}</p>
+            </div>
+          </div>
+          
+          <!-- Price Chart -->
+          <div class="chart-area" *ngIf="hasChartData() && getAllChartPoints().length > 0">
+            <price-chart 
+              [chartData]="priceChartData" 
+              [loading]="chartLoading">
+            </price-chart>
+          </div>
+          
+          <!-- Fallback when no intraday data but has OHLC -->
+          <div class="chart-fallback" *ngIf="hasChartData() && getAllChartPoints().length === 0">
+            <div class="fallback-chart">
+              <div class="price-bar">
+                <div class="open-price">{{ priceChartData.open }}</div>
+                <div class="price-arrow" 
+                     [class.positive]="getPriceChange() >= 0"
+                     [class.negative]="getPriceChange() < 0">
+                  {{ getPriceChange() >= 0 ? '↗' : '↘' }}
+                </div>
+                <div class="close-price">{{ priceChartData.close }}</div>
+              </div>
+              <div class="price-range">
+                <span class="range-label">High: {{ priceChartData.high }}</span>
+                <span class="range-label">Low: {{ priceChartData.low }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="!chartLoading && !priceChartData" class="no-chart-data">
+        No chart data available for this date.
+      </div>
+    </div>
+  </div>
+</div> 

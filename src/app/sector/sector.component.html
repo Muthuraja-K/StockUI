@@ -1,0 +1,151 @@
+<div class="sector-management">
+  <div class="sector-banner">
+    <h2>Sectors Management</h2>
+  </div>
+
+  <div class="sector-table-wrapper">
+    <!-- Header Controls -->
+    <div class="sector-header-controls">
+      <div class="left-controls">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" [(ngModel)]="filterSector" placeholder="Filter by sector..." (keyup.enter)="searchSectors()" />
+          <button *ngIf="filterSector" class="clear-btn" (click)="filterSector=''" aria-label="Clear sector search">&times;</button>
+        </div>
+      </div>
+      
+      <div class="right-controls">
+        <button class="search-btn" (click)="searchSectors()" aria-label="Search sectors">
+          Search
+        </button>
+        <button *ngIf="filterSector" class="clear-all-btn" (click)="clearFilter()" aria-label="Clear all filters">
+          Clear All
+        </button>
+        <button class="btn btn-primary" (click)="showAddForm()">Add New Sector</button>
+      </div>
+    </div>
+
+    <div class="sectors-table" *ngIf="!loading">
+      <table style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Sector</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sector of sectors">
+            <td>{{ sector.sector }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="showEditForm(sector)" title="Edit Sector">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteSector(sector.sector)" title="Delete Sector">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="loading" *ngIf="loading">
+      <p>Loading sectors...</p>
+    </div>
+  </div>
+
+  <!-- Add Sector Form -->
+  <div class="modal" *ngIf="showAddSectorForm">
+    <div class="modal-content">
+      <h3>Add New Sector</h3>
+      <form (ngSubmit)="addSector()">
+        <div class="form-group">
+          <label>Sector Name *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newSector.sector" 
+            name="sector" 
+            required
+            (input)="validateNewSector()"
+            [class.valid]="newSectorValidation.isValid"
+            [class.invalid]="!newSectorValidation.isValid && newSector.sector.trim()"
+            [class.neutral]="!newSector.sector.trim()"
+          >
+          <div class="validation-message" *ngIf="newSector.sector.trim()">
+            <span *ngIf="newSectorValidation.isValid" class="valid-message">✓ Valid sector name</span>
+            <span *ngIf="!newSectorValidation.isValid" class="invalid-message">{{ newSectorValidation.errorMessage }}</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!newSectorValidation.isValid">Add Sector</button>
+          <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Sector Form -->
+  <div class="modal" *ngIf="showEditSectorForm">
+    <div class="modal-content">
+      <h3>Edit Sector: {{ selectedSector?.sector }}</h3>
+      <form (ngSubmit)="updateSector()">
+        <div class="form-group">
+          <label>Sector Name *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editSector.sector" 
+            name="sector" 
+            required
+            (input)="validateEditSector()"
+            [class.valid]="editSectorValidation.isValid"
+            [class.invalid]="!editSectorValidation.isValid && editSector.sector.trim()"
+            [class.neutral]="!editSector.sector.trim()"
+          >
+          <div class="validation-message" *ngIf="editSector.sector.trim()">
+            <span *ngIf="editSectorValidation.isValid" class="valid-message">✓ Valid sector name</span>
+            <span *ngIf="!editSectorValidation.isValid" class="invalid-message">{{ editSectorValidation.errorMessage }}</span>
+            <span *ngIf="editSectorValidation.isValid && editSector.sector === selectedSector?.sector" class="no-change-message">No changes made</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!editSectorValidation.isValid || editSector.sector === selectedSector?.sector">Update Sector</button>
+          <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div *ngIf="showErrorModal" class="error-modal-overlay" (click)="closeErrorModal()">
+  <div class="error-modal" (click)="$event.stopPropagation()">
+    <div class="error-modal-header">
+      <div class="error-icon">⚠️</div>
+      <h3 class="error-title">{{ errorTitle }}</h3>
+      <button class="error-close-btn" (click)="closeErrorModal()" aria-label="Close error modal">
+        &times;
+      </button>
+    </div>
+    
+    <div class="error-modal-body">
+      <p class="error-message">{{ errorMessage }}</p>
+      
+      <div *ngIf="errorDetails.length > 0" class="error-details">
+        <h4>Error Details:</h4>
+        <ul class="error-details-list">
+          <li *ngFor="let detail of errorDetails" class="error-detail-item">
+            {{ detail }}
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="error-modal-footer">
+      <button class="error-ok-btn" (click)="closeErrorModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>

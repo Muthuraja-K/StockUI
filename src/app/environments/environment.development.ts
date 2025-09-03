@@ -6,4 +6,4 @@ export const environment: Environment = {
   apiTimeout: 30000,
   enableLogging: true,
   version: '1.0.0'
-}; 
+};

@@ -1,0 +1,551 @@
+<div class="stock-info-banner">
+  <h2>Stock History</h2>
+</div>
+
+<div class="stock-info-table-wrapper">
+  <!-- Header Controls -->
+  <div class="stock-info-header-controls">
+    <div class="left-controls">
+      <div class="search-box">
+        <span class="search-icon">🏢</span>
+        <select [(ngModel)]="filterSector" class="sector-select" (change)="onSectorFilterChange()">
+          <option value="">All Sectors</option>
+          <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
+        </select>
+        <button *ngIf="filterSector" class="clear-btn" (click)="filterSector=''" aria-label="Clear sector search">&times;</button>
+        <button class="refresh-sectors-btn" (click)="refreshSectors()" title="Refresh sectors list" aria-label="Refresh sectors" [disabled]="sectorsLoading">
+          {{ sectorsLoading ? '⟳' : '🔄' }}
+        </button>
+        <span *ngIf="sectorsLoading" class="filter-loading-spinner">⟳</span>
+      </div>
+      
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" [(ngModel)]="filterTicker" placeholder="Filter by ticker..." (keyup.enter)="searchStocks()" />
+        <button *ngIf="filterTicker" class="clear-btn" (click)="filterTicker=''" aria-label="Clear ticker search">&times;</button>
+        <span *ngIf="loading" class="filter-loading-spinner">⟳</span>
+      </div>
+      
+      <div class="leverage-filter">
+        <label>Leverage:</label>
+        <select [(ngModel)]="leverageFilter" (change)="onLeverageFilterChange()">
+          <option *ngFor="let option of leverageOptions" [value]="option">{{ option }}</option>
+        </select>
+        <span *ngIf="loading" class="filter-loading-spinner">⟳</span>
+      </div>
+    </div>
+    
+    <div class="right-controls">
+      <div class="refresh-controls">
+        <label>Refresh:</label>
+        <select [(ngModel)]="refreshInterval" (change)="onRefreshIntervalChange()">
+          <option *ngFor="let option of refreshOptions" [value]="option">{{ option }}</option>
+        </select>
+        <button 
+          class="refresh-btn" 
+          [class.active]="isAutoRefreshEnabled"
+          (click)="toggleAutoRefresh()"
+          [title]="isAutoRefreshEnabled ? 'Stop Auto Refresh' : 'Start Auto Refresh'">
+          {{ isAutoRefreshEnabled ? '⏹️' : '🔄' }}
+        </button>
+        <span *ngIf="isAutoRefreshEnabled && refreshSubscription" class="auto-refresh-indicator" title="Auto-refresh is running">
+          🔄
+        </span>
+        <span *ngIf="isAutoRefreshEnabled && !refreshSubscription" class="auto-refresh-warning" title="Auto-refresh stopped - click refresh button to restart">
+          ⚠️
+        </span>
+        <button 
+          *ngIf="isAutoRefreshEnabled && !refreshSubscription" 
+          class="restart-refresh-btn" 
+          (click)="restartAutoRefresh()" 
+          title="Restart Auto Refresh">
+          🔄
+        </button>
+
+
+      </div>
+      
+      <button class="search-btn" (click)="searchStocks()" aria-label="Search stocks" [disabled]="loading">
+        <span *ngIf="loading" class="btn-loading-spinner">⟳</span>
+        Search
+      </button>
+      <button *ngIf="filterTicker || filterSector || leverageFilter !== 'Ticker Only'" class="clear-all-btn" (click)="clearFilters()" aria-label="Clear all filters" [disabled]="loading">
+        <span *ngIf="loading" class="btn-loading-spinner">⟳</span>
+        Clear All
+      </button>
+    </div>
+  </div>
+
+
+  
+  <div *ngIf="loading && stocks.length === 0" class="loading-indicator">Loading...</div>
+  
+  <!-- Enhanced Stock Table -->
+  <table class="stock-info-table finviz-style" *ngIf="stocks.length > 0">
+    <thead>
+      <tr>
+        <th class="sortable-header" [ngClass]="getSortingClass('ticker')" (click)="sortByColumn('ticker')">
+          Ticker {{ getSortIcon('ticker') }}
+          <span *ngIf="sortingLoading && isSorting('ticker')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('sector')" (click)="sortByColumn('sector')">
+          Sector {{ getSortIcon('sector') }}
+          <span *ngIf="sortingLoading && isSorting('sector')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('market_cap')" (click)="sortByColumn('market_cap')">
+          Market Cap {{ getSortIcon('market_cap') }}
+          <span *ngIf="sortingLoading && isSorting('market_cap')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('earning_date')" (click)="sortByColumn('earning_date')">
+          Earnings {{ getSortIcon('earning_date') }}
+          <span *ngIf="sortingLoading && isSorting('earning_date')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('price')" (click)="sortByColumn('price')">
+          Price {{ getSortIcon('price') }}
+          <span *ngIf="sortingLoading && isSorting('price')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('today_change')" (click)="sortByColumn('today_change')">
+          Change {{ getSortIcon('today_change') }}
+          <span *ngIf="sortingLoading && isSorting('today_change')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('today_range')" (click)="sortByColumn('today_range')">
+          TR {{ getSortIcon('today_range') }}
+          <span *ngIf="sortingLoading && isSorting('today_range')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" *ngIf="isAfterHours" [ngClass]="getSortingClass('ah_price')" (click)="sortByColumn('ah_price')">
+          AH Price {{ getSortIcon('ah_price') }}
+          <span *ngIf="sortingLoading && isSorting('ah_price')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" *ngIf="isAfterHours" [ngClass]="getSortingClass('ah_change')" (click)="sortByColumn('ah_change')">
+          AH Change {{ getSortIcon('ah_change') }}
+          <span *ngIf="sortingLoading && isSorting('ah_change')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('1D_percentage')" (click)="sortByColumn('1D_percentage')">
+          1D {{ getSortIcon('1D_percentage') }}
+          <span *ngIf="sortingLoading && isSorting('1D_percentage')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('1D_range')" (click)="sortByColumn('1D_range')">
+          1R {{ getSortIcon('1D_range') }}
+          <span *ngIf="sortingLoading && isSorting('1D_range')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('5D_percentage')" (click)="sortByColumn('5D_percentage')">
+           5D {{ getSortIcon('5D_percentage') }}
+          <span *ngIf="sortingLoading && isSorting('5D_percentage')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('5D_range')" (click)="sortByColumn('5D_range')">
+          5R {{ getSortIcon('5D_range') }}
+          <span *ngIf="sortingLoading && isSorting('5D_range')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('1M_percentage')" (click)="sortByColumn('1M_percentage')">
+          1M {{ getSortIcon('1M_percentage') }}
+          <span *ngIf="sortingLoading && isSorting('1M_percentage')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('6M_percentage')" (click)="sortByColumn('6M_percentage')">
+          6M {{ getSortIcon('6M_percentage') }}
+          <span *ngIf="sortingLoading && isSorting('6M_percentage')" class="sorting-spinner">⟳</span>
+        </th>
+        <th class="sortable-header" [ngClass]="getSortingClass('1Y_percentage')" (click)="sortByColumn('1Y_percentage')">
+          1Y {{ getSortIcon('1Y_percentage') }}
+          <span *ngIf="sortingLoading && isSorting('1Y_percentage')" class="sorting-spinner">⟳</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let stock of stocks" class="stock-row">
+        <td class="ticker-cell">
+          <span class="clickable-ticker" (click)="showSentiment(stock.ticker)">
+            {{ stock.ticker }}
+            <span *ngIf="stock.isleverage" class="leverage-badge">L</span>
+          </span>
+        </td>
+        <td class="sector-cell">
+          <span class="sector-text">{{ stock.sector }}</span>
+        </td>
+        <td class="market-cap-cell">{{ formatMarketCap(stock.market_cap) }}</td>
+        <td class="earnings-cell">{{ stock.earning_date }}</td>
+        <td class="price-cell">{{ stock.price || 'N/A' }}</td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock.today?.change || 'N/A')">
+            {{ stock.today?.change || 'N/A' }} L:{{ stock.today?.low || 'N/A' }} H:{{ stock.today?.high || 'N/A' }}
+          </span>
+        </td>
+        <td class="range-cell">
+          <span [ngClass]="getPercentageChangeClass(calculateTodayRange(stock))">{{ calculateTodayRange(stock) }}</span>
+        </td>
+        <td class="ah-price-cell" *ngIf="isAfterHours">{{ stock.after_hour_price || 'N/A' }}</td>
+        <td class="ah-change-cell" *ngIf="isAfterHours">
+          <span [ngClass]="getPercentageChangeClass(stock.today?.ah_change || 'N/A')">{{ stock.today?.ah_change || 'N/A' }}</span>
+        </td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['1D']?.percentage || 'N/A')">
+            {{ stock['1D']?.percentage || 'N/A' }} L:{{ stock['1D']?.low || 'N/A' }} H:{{ stock['1D']?.high || 'N/A' }}
+          </span>
+        </td>
+        <td class="range-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['1D']?.high_low_percentage || 'N/A')">
+            {{ stock['1D']?.high_low_percentage || 'N/A' }}
+          </span>
+        </td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['5D']?.percentage || 'N/A')">
+            {{ stock['5D']?.percentage || 'N/A' }} L:{{ stock['5D']?.low || 'N/A' }} H:{{ stock['5D']?.high || 'N/A' }}
+          </span>
+        </td>
+        <td class="range-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['5D']?.high_low_percentage || 'N/A')">
+            {{ stock['5D']?.high_low_percentage || 'N/A' }}
+          </span>
+        </td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['1M']?.percentage || 'N/A')">
+            {{ stock['1M']?.percentage || 'N/A' }} L:{{ stock['1M']?.low || 'N/A' }} H:{{ stock['1M']?.high || 'N/A' }}
+          </span>
+        </td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['6M']?.percentage || 'N/A')">
+            {{ stock['6M']?.percentage || 'N/A' }} L:{{ stock['6M']?.low || 'N/A' }} H:{{ stock['6M']?.high || 'N/A' }}
+          </span>
+        </td>
+        <td class="change-cell">
+          <span [ngClass]="getPercentageChangeClass(stock['1Y']?.percentage || 'N/A')">
+            {{ stock['1Y']?.percentage || 'N/A' }} L:{{ stock['1Y']?.low || 'N/A' }} H:{{ stock['1Y']?.high || 'N/A' }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <!-- End of data indicator -->
+  <div *ngIf="stocks.length > 0" class="end-of-data">
+    All records loaded ({{ totalRecords }} total)
+  </div>
+  
+  <!-- No records found -->
+  <div *ngIf="!loading && stocks.length === 0" class="no-records">
+    No records found
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div *ngIf="showErrorModal" class="error-modal-overlay" (click)="closeErrorModal()">
+  <div class="error-modal" (click)="$event.stopPropagation()">
+    <div class="error-modal-header">
+      <div class="error-icon">⚠️</div>
+      <h3 class="error-title">{{ errorTitle }}</h3>
+      <button class="error-close-btn" (click)="closeErrorModal()" aria-label="Close error modal">
+        &times;
+      </button>
+    </div>
+    
+    <div class="error-modal-body">
+      <p class="error-message">{{ errorMessage }}</p>
+      
+      <div *ngIf="errorDetails.length > 0" class="error-details">
+        <h4>Error Details:</h4>
+        <ul class="error-details-list">
+          <li *ngFor="let detail of errorDetails" class="error-detail-item">
+            {{ detail }}
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="error-modal-footer">
+      <button class="error-ok-btn" (click)="closeErrorModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Sentiment Modal -->
+<div class="modal-backdrop" *ngIf="showSentimentModal" (click)="closeSentimentModal()">
+  <div class="sentiment-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Sentiment Analysis - {{ sentimentData?.ticker }}</h3>
+      <button class="close-btn" (click)="closeSentimentModal()">&times;</button>
+    </div>
+    
+    <div class="modal-content" *ngIf="!sentimentLoading && sentimentData">
+      <!-- Overall Sentiment -->
+      <div class="sentiment-section">
+        <h4>Overall Sentiment</h4>
+        <div class="overall-sentiment">
+          <span class="sentiment-badge" [ngClass]="getSentimentClass(sentimentData.overall_sentiment)">
+            {{ getSentimentIcon(sentimentData.overall_sentiment) }} {{ sentimentData.overall_sentiment }}
+          </span>
+          <div class="sentiment-score">
+            Score: {{ (sentimentData.sentiment_score * 100).toFixed(1) }}%
+          </div>
+        </div>
+      </div>
+
+      <!-- Sentiment Distribution -->
+      <div class="sentiment-section">
+        <h4>Sentiment Distribution</h4>
+        <div class="sentiment-distribution">
+          <div class="sentiment-bar">
+            <div class="bar-label">Positive</div>
+            <div class="bar-container">
+              <div class="bar-fill positive" [style.width.%]="sentimentData.positive_percentage"></div>
+              <span class="bar-text">{{ sentimentData.positive_percentage }}%</span>
+            </div>
+          </div>
+          <div class="sentiment-bar">
+            <div class="bar-label">Neutral</div>
+            <div class="bar-container">
+              <div class="bar-fill neutral" [style.width.%]="sentimentData.neutral_percentage"></div>
+              <span class="bar-text">{{ sentimentData.neutral_percentage }}%</span>
+            </div>
+          </div>
+          <div class="sentiment-bar">
+            <div class="bar-label">Negative</div>
+            <div class="bar-container">
+              <div class="bar-fill negative" [style.width.%]="sentimentData.negative_percentage"></div>
+              <span class="bar-text">{{ sentimentData.negative_percentage }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Media Sentiment -->
+      <div class="sentiment-section">
+        <h4>Social Media Sentiment</h4>
+        <div class="social-sentiment">
+          <div class="social-item">
+            <span class="social-label">Twitter:</span>
+            <span class="sentiment-badge" [ngClass]="getSentimentClass(sentimentData.social_media_sentiment.twitter_sentiment)">
+              {{ getSentimentIcon(sentimentData.social_media_sentiment.twitter_sentiment) }} {{ sentimentData.social_media_sentiment.twitter_sentiment }}
+            </span>
+          </div>
+          <div class="social-item">
+            <span class="social-label">Reddit:</span>
+            <span class="sentiment-badge" [ngClass]="getSentimentClass(sentimentData.social_media_sentiment.reddit_sentiment)">
+              {{ getSentimentIcon(sentimentData.social_media_sentiment.reddit_sentiment) }} {{ sentimentData.social_media_sentiment.reddit_sentiment }}
+            </span>
+          </div>
+          <div class="social-item">
+            <span class="social-label">Overall Social Score:</span>
+            <span class="score-value">{{ (sentimentData.social_media_sentiment.overall_social_score * 100).toFixed(1) }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Indicators -->
+      <div class="sentiment-section">
+        <h4>Technical Indicators</h4>
+        <div class="technical-indicators">
+          <div class="indicator-item">
+            <span class="indicator-label">RSI:</span>
+            <span class="indicator-value">{{ sentimentData.technical_indicators.rsi }}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">MACD:</span>
+            <span class="indicator-value">{{ sentimentData.technical_indicators.macd }}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">Moving Averages:</span>
+            <span class="indicator-value">{{ sentimentData.technical_indicators.moving_averages }}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">Support Level:</span>
+            <span class="indicator-value">${{ sentimentData.technical_indicators.support_level }}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">Resistance Level:</span>
+            <span class="indicator-value">${{ sentimentData.technical_indicators.resistance_level }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent News -->
+      <div class="sentiment-section">
+        <h4>Recent News ({{ sentimentData.news_count }} articles analyzed)</h4>
+        <div class="recent-news">
+          <div class="news-item" *ngFor="let news of sentimentData.recent_news">
+            <div class="news-header">
+              <span class="sentiment-badge small" [ngClass]="getSentimentClass(news.sentiment)">
+                {{ getSentimentIcon(news.sentiment) }} {{ news.sentiment }}
+              </span>
+              <span class="news-date">{{ news.published_date }}</span>
+            </div>
+            <div class="news-title">{{ news.title }}</div>
+            <div class="news-source">{{ news.source }}</div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Major Holders -->
+      <div class="sentiment-section">
+        <h4>Major Holders</h4>
+        <div class="major-holders">
+          <div class="major-holder-item">
+            <span class="holder-label">Insiders:</span>
+            <span class="holder-percentage">{{ sentimentData.major_holders.insider_percentage }}%</span>
+          </div>
+          <div class="major-holder-item">
+            <span class="holder-label">Institutions:</span>
+            <span class="holder-percentage">{{ sentimentData.major_holders.institutional_percentage }}%</span>
+          </div>
+          <div class="major-holder-item">
+            <span class="holder-label">Retail:</span>
+            <span class="holder-percentage">{{ sentimentData.major_holders.retail_percentage }}%</span>
+          </div>
+          <div class="major-holder-item total">
+            <span class="holder-label">Total:</span>
+            <span class="holder-percentage">{{ sentimentData.major_holders.total_percentage }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Institutional Holders -->
+      <div class="sentiment-section">
+        <h4>Top Institutional Holders</h4>
+        <div class="institutional-summary">
+          <div class="summary-item">
+            <span class="summary-label">Total Percentage Held:</span>
+            <span class="summary-value">{{ sentimentData.top_institutional_holders.total_percentage_held }}%</span>
+          </div>
+        </div>
+        <div class="holdings-grid">
+          <div class="grid-header">
+            <div class="grid-cell">Holder</div>
+            <div class="grid-cell">Shares</div>
+            <div class="grid-cell">Date Reported</div>
+            <div class="grid-cell">% Out</div>
+            <div class="grid-cell">Value</div>
+          </div>
+          <div class="grid-row" *ngFor="let holding of sentimentData.top_institutional_holders.holdings">
+            <div class="grid-cell holder-name">{{ holding.holder }}</div>
+            <div class="grid-cell">{{ holding.shares.toLocaleString() }}</div>
+            <div class="grid-cell">{{ holding.date_reported }}</div>
+            <div class="grid-cell percentage">{{ holding.percentage_out }}%</div>
+            <div class="grid-cell value">${{ holding.value.toLocaleString() }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Mutual Fund Holders -->
+      <div class="sentiment-section">
+        <h4>Top Mutual Fund Holders</h4>
+        <div class="institutional-summary">
+          <div class="summary-item">
+            <span class="summary-label">Total Percentage Held:</span>
+            <span class="summary-value">{{ sentimentData.top_mutual_fund_holders.total_percentage_held }}%</span>
+          </div>
+        </div>
+        <div class="holdings-grid">
+          <div class="grid-header">
+            <div class="grid-cell">Holder</div>
+            <div class="grid-cell">Shares</div>
+            <div class="grid-cell">Date Reported</div>
+            <div class="grid-cell">% Out</div>
+            <div class="grid-cell">Value</div>
+          </div>
+          <div class="grid-row" *ngFor="let holding of sentimentData.top_mutual_fund_holders.holdings">
+            <div class="grid-cell holder-name">{{ holding.holder }}</div>
+            <div class="grid-cell">{{ holding.shares.toLocaleString() }}</div>
+            <div class="grid-cell">{{ holding.date_reported }}</div>
+            <div class="grid-cell percentage">{{ holding.percentage_out }}%</div>
+            <div class="grid-cell value">${{ holding.value.toLocaleString() }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Individual Holdings -->
+    
+      <!-- Option Chain Information -->
+      <div class="sentiment-section" *ngIf="optionData">
+        <h3>Option Chain Information</h3>
+        
+        <div class="option-summary">
+          <p><strong>Current Price:</strong> ${{ optionData?.current_price || 'N/A' }}</p>
+          <p><strong>Expiration Dates:</strong> {{ optionData?.expiration_dates?.length || 0 }} available</p>
+        </div>
+        
+        <div class="option-expiration-selector" *ngIf="optionData?.expiration_dates && (optionData?.expiration_dates?.length || 0) > 0">
+          <label for="expiration-select">Select Expiration Date:</label>
+          <select id="expiration-select" [(ngModel)]="selectedExpiration" (change)="onExpirationChange()">
+            <option *ngFor="let date of optionData?.expiration_dates || []" [value]="date">
+              {{ formatExpirationDate(date) }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="loading-content" *ngIf="sentimentLoading">
+          <p>Loading option data...</p>
+        </div>
+        
+        <!-- Calls and Puts Grid -->
+        <div class="options-grid-container" *ngIf="selectedExpiration && (filteredCalls!=undefined && filteredCalls.length > 0 || filteredPuts!=undefined &&  filteredPuts.length > 0)">
+          <!-- Calls Section -->
+
+          <div class="options-section" *ngIf="filteredCalls!=undefined && filteredCalls.length > 0">
+            <h5>Calls ({{ filteredCalls.length }})</h5>
+            <div class="options-grid">
+              <div class="grid-header">
+                <div class="grid-cell">Strike</div>
+                <div class="grid-cell">Last</div>
+                <div class="grid-cell">Bid</div>
+                <div class="grid-cell">Ask</div>
+                <div class="grid-cell">Volume</div>
+                <div class="grid-cell">OI</div>
+                <div class="grid-cell">IV</div>
+                <div class="grid-cell">Delta</div>
+              </div>
+              <div class="grid-row" *ngFor="let call of filteredCalls.slice(0, 10)">
+                <div class="grid-cell" [ngClass]="{'in-the-money': call.in_the_money}">{{ call.strike_price }}</div>
+                <div class="grid-cell">${{ call.last_price?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">${{ call.bid?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">${{ call.ask?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">{{ call.volume?.toLocaleString() || 'N/A' }}</div>
+                <div class="grid-cell">{{ call.open_interest?.toLocaleString() || 'N/A' }}</div>
+                <div class="grid-cell">{{ (call.implied_volatility * 100)?.toFixed(1) || 'N/A' }}%</div>
+                <div class="grid-cell">{{ call.delta?.toFixed(3) || 'N/A' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Puts Section -->
+          <div class="options-section" *ngIf="filteredPuts!=undefined && filteredPuts.length > 0">
+            <h5>Puts ({{ filteredPuts.length }})</h5>
+            <div class="options-grid">
+              <div class="grid-header">
+                <div class="grid-cell">Strike</div>
+                <div class="grid-cell">Last</div>
+                <div class="grid-cell">Bid</div>
+                <div class="grid-cell">Ask</div>
+                <div class="grid-cell">Volume</div>
+                <div class="grid-cell">OI</div>
+                <div class="grid-cell">IV</div>
+                <div class="grid-cell">Delta</div>
+              </div>
+              <div class="grid-row" *ngFor="let put of filteredPuts.slice(0, 10)">
+                <div class="grid-cell" [ngClass]="{'in-the-money': put.in_the_money}">{{ put.strike_price }}</div>
+                <div class="grid-cell">${{ put.last_price?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">${{ put.bid?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">${{ put.ask?.toFixed(2) || 'N/A' }}</div>
+                <div class="grid-cell">{{ put.volume?.toLocaleString() || 'N/A' }}</div>
+                <div class="grid-cell">{{ put.open_interest?.toLocaleString() || 'N/A' }}</div>
+                <div class="grid-cell">{{ (put.implied_volatility * 100)?.toFixed(1) || 'N/A' }}%</div>
+                <div class="grid-cell">{{ put.delta?.toFixed(3) || 'N/A' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Options Available -->
+        <div class="no-options" *ngIf="!sentimentLoading && (!optionData || (!filteredCalls?.length && !filteredPuts?.length))">
+          <p>No option data available for this stock.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="loading-content" *ngIf="sentimentLoading">
+      <div class="loading-spinner"></div>
+      <p>Analyzing sentiment data...</p>
+    </div>
+  </div>
+</div> 

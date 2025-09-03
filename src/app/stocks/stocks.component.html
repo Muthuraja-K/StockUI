@@ -1,0 +1,241 @@
+<div class="stocks-management">
+  <div class="stocks-banner">
+    <h2>Stocks Management</h2>
+  </div>
+
+  <div class="stocks-table-wrapper">
+    <!-- Header Controls -->
+    <div class="stocks-header-controls">
+      <div class="left-controls">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" [(ngModel)]="filterTicker" placeholder="Filter by ticker..." (keyup.enter)="searchStocks()" />
+          <button *ngIf="filterTicker" class="clear-btn" (click)="filterTicker=''" aria-label="Clear ticker search">&times;</button>
+        </div>
+        
+        <div class="search-box">
+          <span class="search-icon">🏢</span>
+          <select [(ngModel)]="filterSector" (change)="searchStocks()">
+            <option value="">All Sectors</option>
+            <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="right-controls">
+        <button class="search-btn" (click)="searchStocks()" aria-label="Search stocks">
+          Search
+        </button>
+        <button *ngIf="filterTicker || filterSector" class="clear-all-btn" (click)="clearFilters()" aria-label="Clear all filters">
+          Clear All
+        </button>
+        <button class="btn btn-primary" (click)="showAddForm()">Add New Stock</button>
+        <button class="btn btn-secondary" (click)="testAuth()" style="margin-left: 10px;">Test Auth</button>
+      </div>
+    </div>
+
+    <div class="stocks-table" *ngIf="!loading">
+      <table style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Company Name</th>
+            <th>Sector</th>
+            <th>Is Leverage</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let stock of stocks">
+            <td>{{ stock.ticker }}</td>
+            <td>{{ stock.company_name || 'N/A' }}</td>
+            <td>{{ stock.sector }}</td>
+            <td>
+              <span class="isleverage-badge" [ngClass]="'isleverage-' + stock.isleverage">
+                {{ stock.isleverage ? 'Yes' : 'No' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="showEditForm(stock)" title="Edit Stock">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteStock(stock.ticker)" title="Delete Stock">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="loading" *ngIf="loading">
+      <p>Loading stocks...</p>
+    </div>
+  </div>
+
+  <!-- Add Stock Form -->
+  <div class="modal" *ngIf="showAddStockForm">
+    <div class="modal-content">
+      <h3>Add New Stock</h3>
+      <form (ngSubmit)="addStock()">
+        <div class="form-group">
+          <label>Ticker *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newStock.ticker" 
+            name="ticker" 
+            required
+            (input)="validateNewStock()"
+            [class.valid]="newStockValidation.isValid"
+            [class.invalid]="!newStockValidation.isValid && newStock.ticker.trim()"
+            [class.neutral]="!newStock.ticker.trim()"
+          >
+          <div class="validation-message" *ngIf="newStock.ticker.trim()">
+            <span *ngIf="newStockValidation.isValid" class="valid-message">✓ Valid ticker</span>
+            <span *ngIf="!newStockValidation.isValid" class="invalid-message">{{ newStockValidation.errorMessage }}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Company Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newStock.company_name" 
+            name="company_name" 
+            placeholder="Will be automatically fetched from Finviz"
+            readonly
+          >
+          <small class="form-text text-muted">Company name is automatically fetched from Finviz when adding the stock</small>
+        </div>
+        <div class="form-group">
+          <label>Sector *</label>
+          <select 
+            [(ngModel)]="newStock.sector" 
+            name="sector" 
+            required
+            (change)="validateNewStock()"
+            [class.valid]="newStockValidation.isValid"
+            [class.invalid]="!newStockValidation.isValid && newStock.sector.trim()"
+            [class.neutral]="!newStock.sector.trim()"
+          >
+            <option value="">Select a sector</option>
+            <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
+          </select>
+          <div class="validation-message" *ngIf="newStock.sector.trim()">
+            <span *ngIf="newStockValidation.isValid" class="valid-message">✓ Valid sector</span>
+            <span *ngIf="!newStockValidation.isValid" class="invalid-message">{{ newStockValidation.errorMessage }}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="newStock.isleverage" name="isleverage">
+            Is Leverage
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!newStockValidation.isValid">Add Stock</button>
+          <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Stock Form -->
+  <div class="modal" *ngIf="showEditStockForm">
+    <div class="modal-content">
+      <h3>Edit Stock: {{ selectedStock?.ticker }}</h3>
+      <form (ngSubmit)="updateStock()">
+        <div class="form-group">
+          <label>Ticker *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editStock.ticker" 
+            name="ticker" 
+            required
+            (input)="validateEditStock()"
+            [class.valid]="editStockValidation.isValid"
+            [class.invalid]="!editStockValidation.isValid && editStock.ticker.trim()"
+            [class.neutral]="!editStock.ticker.trim()"
+          >
+          <div class="validation-message" *ngIf="editStock.ticker.trim()">
+            <span *ngIf="editStockValidation.isValid" class="valid-message">✓ Valid ticker</span>
+            <span *ngIf="!editStockValidation.isValid" class="invalid-message">{{ editStockValidation.errorMessage }}</span>
+            <span *ngIf="editStockValidation.isValid && editStock.ticker === selectedStock?.ticker && editStock.sector === selectedStock?.sector && editStock.isleverage === selectedStock?.isleverage" class="no-change-message">No changes made</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Company Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editStock.company_name" 
+            name="company_name" 
+            readonly
+          >
+          <small class="form-text text-muted">Company name is automatically updated from Finviz when ticker changes</small>
+        </div>
+        <div class="form-group">
+          <label>Sector *</label>
+          <select 
+            [(ngModel)]="editStock.sector" 
+            name="sector" 
+            required
+            (change)="validateEditStock()"
+            [class.valid]="editStockValidation.isValid"
+            [class.invalid]="!editStockValidation.isValid && editStock.sector.trim()"
+            [class.neutral]="!editStock.sector.trim()"
+          >
+            <option value="">Select a sector</option>
+            <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
+          </select>
+          <div class="validation-message" *ngIf="editStock.sector.trim()">
+            <span *ngIf="editStockValidation.isValid" class="valid-message">✓ Valid sector</span>
+            <span *ngIf="!editStockValidation.isValid" class="invalid-message">{{ editStockValidation.errorMessage }}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="editStock.isleverage" name="isleverage" (change)="validateEditStock()">
+            Is Leverage
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!editStockValidation.isValid || (editStock.ticker === selectedStock?.ticker && editStock.sector === selectedStock?.sector && editStock.isleverage === selectedStock?.isleverage)">Update Stock</button>
+          <button type="button" class="btn btn-secondary" (click)="hideForms()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div *ngIf="showErrorModal" class="error-modal-overlay" (click)="closeErrorModal()">
+  <div class="error-modal" (click)="$event.stopPropagation()">
+    <div class="error-modal-header">
+      <div class="error-icon">⚠️</div>
+      <h3 class="error-title">{{ errorTitle }}</h3>
+      <button class="error-close-btn" (click)="closeErrorModal()" aria-label="Close error modal">
+        &times;
+      </button>
+    </div>
+    
+    <div class="error-modal-body">
+      <p class="error-message">{{ errorMessage }}</p>
+      
+      <div *ngIf="errorDetails.length > 0" class="error-details">
+        <h4>Error Details:</h4>
+        <ul class="error-details-list">
+          <li *ngFor="let detail of errorDetails" class="error-detail-item">
+            {{ detail }}
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="error-modal-footer">
+      <button class="error-ok-btn" (click)="closeErrorModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>

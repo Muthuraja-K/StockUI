@@ -1,0 +1,280 @@
+<div class="stock-summary-banner">
+  <h2>Stock Summary</h2>
+</div>
+<div class="stock-summary-wrapper">
+  <div class="stock-summary-controls">
+    <div class="left-controls">
+      <!-- Sector Multi-Select -->
+      <div class="search-box sector-multi-select">
+        <span class="search-icon">🏢</span>
+        <div class="sector-chips">
+          <ng-container *ngIf="isAllSectorsSelected(); else sectorList">
+            <span class="sector-chip selected" (click)="clearFilters()">
+              All
+            </span>
+          </ng-container>
+          <ng-template #sectorList>
+            <span *ngFor="let sector of sectors" 
+                  class="sector-chip" 
+                  [class.selected]="isSectorSelected(sector)"
+                  (click)="toggleSector(sector)">
+              {{ sector }}
+            </span>
+          </ng-template>
+        </div>
+      </div>
+      
+      <!-- Quick Time Period Filter -->
+      <div class="time-period-filter">
+        <span class="filter-label">Period:</span>
+        <div class="period-buttons">
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === 'today'"
+            (click)="selectPeriod('today')">
+            Today
+          </button>
+          <button 
+            *ngIf="isAutoRefreshAvailable()"
+            class="refresh-btn" 
+            (click)="refreshTodayData()" 
+            [disabled]="loading"
+            [title]="'Refresh real-time data for Today filter'">
+            <span class="refresh-icon">🔄</span>
+            <span class="refresh-text">Refresh</span>
+          </button>
+          
+          <!-- Auto-refresh controls (only for Today filter) -->
+          <div *ngIf="isAutoRefreshAvailable()" class="auto-refresh-controls">
+            <label class="refresh-interval-label">Auto:</label>
+            <select [(ngModel)]="refreshInterval" (change)="onRefreshIntervalChange()" class="refresh-interval-select">
+              <option *ngFor="let option of refreshOptions" [value]="option">{{ option }}</option>
+            </select>
+            <button 
+              class="auto-refresh-btn" 
+              [class.active]="isAutoRefreshEnabled"
+              (click)="toggleAutoRefresh()"
+              [title]="isAutoRefreshEnabled ? 'Stop Auto Refresh' : 'Start Auto Refresh'">
+              {{ isAutoRefreshEnabled ? '⏹️' : '🔄' }}
+            </button>
+            <span *ngIf="isAutoRefreshEnabled && refreshSubscription" class="auto-refresh-indicator" title="Auto-refresh is running">
+              🔄
+            </span>
+            <span *ngIf="isAutoRefreshEnabled && !refreshSubscription" class="auto-refresh-warning" title="Auto-refresh stopped - click refresh button to restart">
+              ⚠️
+            </span>
+            <button 
+              *ngIf="isAutoRefreshEnabled && !refreshSubscription" 
+              class="restart-refresh-btn" 
+              (click)="restartAutoRefresh()" 
+              title="Restart Auto Refresh">
+              🔄
+            </button>
+          </div>
+          
+          <span *ngIf="isAutoRefreshAvailable() && lastRefreshTime" class="refresh-timestamp">
+            Last: {{ lastRefreshTime }}
+          </span>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1D'"
+            (click)="selectPeriod('1D')">
+            1D
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1W'"
+            (click)="selectPeriod('1W')">
+            1W
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === '1M'"
+            (click)="selectPeriod('1M')">
+            1M
+          </button>
+          <button 
+            class="period-btn" 
+            [class.active]="selectedPeriod === 'custom'"
+            (click)="selectPeriod('custom')">
+            Custom
+          </button>
+        </div>
+      </div>
+      
+      <!-- Date From Filter -->
+      <div class="search-box" [class.hidden]="selectedPeriod !== 'custom'">
+        <span class="search-icon">📅</span>
+        <input type="date" [(ngModel)]="dateFrom" (change)="onDateFilterChange()" placeholder="Date From" />
+      </div>
+      
+      <!-- Date To Filter -->
+      <div class="search-box" [class.hidden]="selectedPeriod !== 'custom'">
+        <span class="search-icon">📅</span>
+        <input type="date" [(ngModel)]="dateTo" (change)="onDateFilterChange()" placeholder="Date To" />
+      </div>
+      
+      <!-- Leverage Filter -->
+      <div class="checkbox-filter">
+        <label class="xticker-checkbox">
+          <input type="checkbox" [(ngModel)]="filterIsXticker" (change)="onIsXtickerFilterChange()" [indeterminate]="filterIsXticker === null" />
+          <span class="checkbox-label">Leverage Only</span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="right-controls">
+      <!-- Search Button -->
+      <button class="search-btn" 
+              (click)="performSearch()" 
+              [disabled]="loading"
+              aria-label="Search stock summary">
+        <span class="search-icon">🔍</span>
+        <span class="search-text">{{ loading ? 'Searching...' : 'Search' }}</span>
+      </button>
+
+      <!-- Clear All Button -->
+      <button *ngIf="selectedSectors.length > 0 || filterIsXticker !== null || dateFrom || dateTo" 
+              class="clear-all-btn" 
+              (click)="clearFilters()" 
+              aria-label="Clear all filters">
+        Clear All
+      </button>
+    </div>
+
+
+  </div>
+
+  <!-- Date Range Error Display -->
+  <div *ngIf="dateRangeError" class="date-error">
+    <span class="error-icon">⚠️</span>
+    <span class="error-message">{{ dateRangeError }}</span>
+  </div>
+  
+  <!-- Initial State -->
+  <div *ngIf="!hasSearched && !loading" class="initial-state">
+    <div class="initial-message">
+      <span class="message-icon">📊</span>
+      <h3>Ready to Search</h3>
+      <p>Configure your filters and click the Search button to view stock summary data.</p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-indicator">Loading...</div>
+  
+  <!-- Chart View -->
+  <div class="chart-container" *ngIf="!loading && viewMode === 'chart' && hasSearched">
+    <!-- Chart Header with View Toggle -->
+    <div class="chart-header">
+      <div class="chart-title">
+        <span class="header-icon" *ngIf="sectorGroups.length > 0" 
+              (click)="toggleAllGroups()" 
+              [title]="areAllGroupsExpanded() ? 'Collapse all groups' : 'Expand all groups'">
+          {{ areAllGroupsExpanded() ? '⏷' : '⏵' }}
+        </span>
+        Stock Summary Chart
+      </div>
+      
+      <button class="view-toggle-btn" 
+              (click)="toggleViewMode()" 
+              [disabled]="!hasSearched"
+              aria-label="Toggle between grid and chart view">
+        <span class="toggle-icon">📋</span>
+        <span class="toggle-text">Grid View</span>
+      </button>
+    </div>
+    
+    <div *ngIf="sectorGroups.length === 0" class="no-records">No records found</div>
+    <div *ngIf="sectorGroups.length > 0" class="chart-wrapper">
+      <canvas #chartCanvas width="800" height="400"></canvas>
+    </div>
+  </div>
+  
+  <!-- Grid View -->
+  <div class="grouped-grid" *ngIf="!loading && viewMode === 'grid' && hasSearched">
+    <!-- Grid Header with View Toggle -->
+    <div class="grid-header">
+      <div class="grid-title">
+        <span class="header-icon" *ngIf="sectorGroups.length > 0" 
+              (click)="toggleAllGroups()" 
+              [title]="areAllGroupsExpanded() ? 'Collapse all groups' : 'Expand all groups'">
+          {{ areAllGroupsExpanded() ? '⏷' : '⏵' }}
+        </span>
+        Stock Summary Results
+        <span *ngIf="isSameDateSelected()" class="analysis-type-note">
+          (Intraday Analysis: Open vs Close)
+        </span>
+        <span *ngIf="isAutoRefreshAvailable() && isAutoRefreshEnabled" class="auto-refresh-status">
+          🔄 Auto-refresh: {{ refreshInterval }}
+        </span>
+      </div>
+      
+
+      
+      <button class="view-toggle-btn" 
+              (click)="toggleViewMode()" 
+              [disabled]="!hasSearched"
+              aria-label="Toggle between grid and chart view">
+        <span class="toggle-icon">📊</span>
+        <span class="toggle-text">Chart View</span>
+      </button>
+    </div>
+    
+    <!-- Stock Summary Results Container -->
+    <div class="stock-summary-results">
+      <!-- Show sector groups -->
+      <div *ngIf="sectorGroups.length === 0" class="no-records">No records found</div>
+      
+      <!-- Sector Groups Grid -->
+      <div *ngIf="sectorGroups.length > 0" class="sector-groups-container">
+        <div *ngFor="let group of sectorGroups" class="sector-group">
+          <!-- Group Header -->
+          <div class="group-header" (click)="toggleGroup(group)">
+            <div class="group-info">
+              <span class="tree-toggle-icon">{{ group.expanded ? '−' : '+' }}</span>
+              <span class="group-name">{{ group.sector }}</span>
+              <span class="group-average" [ngClass]="getPercentageChangeClass(group.averagePercentage)">
+                Avg: {{ group.averagePercentage }}
+              </span>
+            </div>
+            <div class="group-toggle">
+              <span class="stock-count">({{ group.stocks.length }} stocks)</span>
+            </div>
+          </div>
+          
+          <!-- Group Content -->
+          <div class="group-content" *ngIf="group.expanded">
+            <div class="table-container">
+              <table class="stock-table">
+                <thead>
+                  <tr>
+                    <th class="tree-indent"></th>
+                    <th>Ticker</th>
+                    <th>Current Price</th>
+                    <th>{{ getStartDateLabel() }}</th>
+                    <th>{{ getEndDateLabel() }}</th>
+                    <th>% Change ↓</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let stock of group.stocks">
+                    <td class="tree-indent"></td>
+                    <td>{{ stock.ticker }}</td>
+                    <td>{{ stock.currentPrice }}</td>
+                    <td>{{ stock.startDateClosePrice }}</td>
+                    <td>{{ stock.endDateClosePrice }}</td>
+                    <td>
+                      <span [ngClass]="getPercentageChangeClass(stock.percentageChange)">
+                        {{ stock.percentageChange }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

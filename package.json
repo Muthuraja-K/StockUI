@@ -4,18 +4,23 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:dev": "ng serve --configuration development",
+    "start:prod": "ng serve --configuration production",
     "build": "ng build",
+    "build:dev": "ng build --configuration development",
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "copy-to-api": "xcopy /E /I /Y dist\\StockUpdate\\browser\\* ..\\StockWebApi\\static\\",
+    "clean": "rimraf \"../StockWebApi/static\" && mkdir \"../StockWebApi/static\"",
+    "clean:win": "if exist \"..\\StockWebApi\\static\" rmdir /s /q \"..\\StockWebApi\\static\" && mkdir \"..\\StockWebApi\\static\"",
+    "copytoapi": "xcopy /E /I /Y dist\\StockUpdate\\browser\\* ..\\StockWebApi\\static\\",
     "copy-to-api-unix": "copyfiles -f dist/StockUpdate/browser/* ../StockWebApi/static/",
     "copy-api-to-d": "xcopy /E /I /Y /EXCLUDE:copy-exclude.txt ..\\StockWebApi\\* D:\\friendfortpolio\\",
     "copy-api-to-d-unix": "copyfiles -f ../StockWebApi/* D:/friendfortpolio/ --exclude=**/__pycache__/** --exclude=**/.vscode/**",
-    "build-and-copy": "npm run build && npm run copy-to-api",
-    "build-prod-and-copy": "npm run build:prod && npm run copy-to-api",
-    "deploy": "npm run build:prod && npm run copy-to-api",
-    "deployprod": "npm run build:prod && npm run copy-to-api && npm run copy-api-to-d"
+    "build-and-copy": "npm run clean && npm run build:dev && npm run copy-to-api",
+    "build-prod-and-copy": "npm run clean && npm run build:prod && npm run copy-to-api",
+    "deploy": "npm run clean && npm run build:prod && npm run copytoapi",
+    "deployprod": "npm run clean && npm run build:prod && npm run copytoapi && npm run copy-api-to-d"
   },
   "prettier": {
     "overrides": [
@@ -57,6 +62,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "rimraf": "^5.0.5",
     "typescript": "~5.8.2"
   }
 }

@@ -1,0 +1,71 @@
+<div class="download-section">
+  <div class="header">
+    <h2>Data Download</h2>
+    <p>Download system data for backup or analysis purposes</p>
+  </div>
+
+  <!-- Access Denied Message -->
+  <div class="access-denied" *ngIf="accessDenied">
+    <div class="access-denied-content">
+      <div class="access-denied-icon">🚫</div>
+      <h3>Access Restricted</h3>
+      <p>This feature is only available to users with username "superuser".</p>
+      <p>Current user: <strong>{{ authService.currentUserValue?.username || 'Not logged in' }}</strong></p>
+      <div class="access-info">
+        <p><strong>Why is this restricted?</strong></p>
+        <ul>
+          <li>Data downloads contain sensitive system information</li>
+          <li>Only superuser accounts have access to system-wide data</li>
+          <li>This ensures data security and prevents unauthorized access</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="download-options" *ngIf="!accessDenied">
+    <div 
+      *ngFor="let option of downloadOptions" 
+      class="download-option"
+      [class.selected]="selectedOption === option.value"
+      (click)="selectOption(option.value)"
+    >
+      <div class="option-icon">{{ getOptionIcon(option.value) }}</div>
+      <div class="option-content">
+        <h3>{{ option.label }}</h3>
+        <p>{{ option.description }}</p>
+      </div>
+      <div class="option-check">
+        <span *ngIf="selectedOption === option.value">✓</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="download-actions" *ngIf="selectedOption && !accessDenied">
+    <button 
+      class="btn btn-primary download-btn" 
+      (click)="downloadData()"
+      [disabled]="downloading"
+    >
+      <span *ngIf="!downloading">Download {{ selectedOption | titlecase }} Data</span>
+      <span *ngIf="downloading">Downloading...</span>
+    </button>
+  </div>
+
+  <div class="download-progress" *ngIf="downloading && !accessDenied">
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="downloadProgress"></div>
+    </div>
+    <p class="progress-text">{{ downloadProgress }}% Complete</p>
+  </div>
+
+  <div class="download-info" *ngIf="!accessDenied">
+    <h3>Download Information</h3>
+    <ul>
+      <li><strong>Users Data:</strong> Contains complete user information including passwords (superuser access only)</li>
+      <li><strong>Stocks Data:</strong> Contains stock tickers, sectors, and configuration settings</li>
+      <li><strong>Sectors Data:</strong> Contains sector definitions and configurations</li>
+      <li>All data is exported in JSON format for easy processing</li>
+      <li>Files are automatically named with the current date</li>
+    </ul>
+  </div>
+</div>

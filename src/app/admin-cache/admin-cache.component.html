@@ -1,0 +1,150 @@
+<div class="admin-cache-management">
+  <div class="admin-cache-banner">
+    <h2>Admin Cache Management</h2>
+  </div>
+
+  <div class="admin-cache-wrapper">
+    <!-- Header Controls -->
+    <div class="admin-cache-header-controls">
+      <div class="left-controls">
+        <h3>Cache Management Dashboard</h3>
+        <p>Monitor and manage system caches and data files</p>
+      </div>
+      
+      <div class="right-controls">
+        <button class="btn btn-primary" (click)="loadCacheOverview()" [disabled]="loading">
+          <span *ngIf="loading" class="spinner">⟳</span>
+          Refresh Overview
+        </button>
+      </div>
+    </div>
+
+    <!-- Message Display -->
+    <div *ngIf="message" class="message-display" [ngClass]="'message-' + messageType">
+      <span class="message-icon">
+        <span *ngIf="messageType === 'success'">✅</span>
+        <span *ngIf="messageType === 'error'">❌</span>
+        <span *ngIf="messageType === 'info'">ℹ️</span>
+      </span>
+      <span class="message-text">{{ message }}</span>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div *ngIf="loading" class="loading-indicator">
+      <div class="spinner">⟳</div>
+      <p>Processing request...</p>
+    </div>
+
+    <!-- Cache Overview -->
+    <div *ngIf="!loading && cacheOverview" class="cache-overview">
+      <!-- Action Buttons -->
+      <div class="action-buttons-section">
+        <h4>Quick Actions</h4>
+        <div class="action-buttons">
+          <button class="btn btn-secondary" (click)="refreshStockHistory()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner">⟳</span>
+            Refresh Stock History
+          </button>
+          <button class="btn btn-warning" (click)="refreshAllCaches()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner">⟳</span>
+            Refresh All Caches
+          </button>
+          <button class="btn btn-info" (click)="forcePopulateHistory()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner">⟳</span>
+            Force Populate History
+          </button>
+        </div>
+      </div>
+
+      <!-- Cache Status Overview -->
+      <div class="cache-status-section">
+        <h4>Cache Status Overview</h4>
+        <div class="cache-status-grid">
+          <div class="cache-status-card" *ngFor="let cache of cacheOverview.cache_status">
+            <div class="cache-header">
+              <h5>{{ cache.name }}</h5>
+              <span class="status-badge" [ngClass]="getCacheStatusClass(cache.status)">
+                {{ cache.status }}
+              </span>
+            </div>
+            <div class="cache-details">
+              <div class="detail-item">
+                <span class="label">Last Updated:</span>
+                <span class="value">{{ formatDate(cache.last_updated) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Size:</span>
+                <span class="value">{{ formatFileSize(cache.size_bytes) }}</span>
+              </div>
+              <div class="detail-item" *ngIf="cache.expires_at">
+                <span class="label">Expires:</span>
+                <span class="value">{{ formatDate(cache.expires_at) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Status Overview -->
+      <div class="file-status-section">
+        <h4>Data File Status</h4>
+        <div class="file-status-grid">
+          <div class="file-status-card" *ngFor="let file of cacheOverview.file_status">
+            <div class="file-header">
+              <h5>{{ file.name }}</h5>
+              <span class="status-badge" [ngClass]="getCacheStatusClass(file.status)">
+                {{ file.status }}
+              </span>
+            </div>
+            <div class="file-details">
+              <div class="detail-item">
+                <span class="label">Last Modified:</span>
+                <span class="value">{{ formatDate(file.last_modified) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Size:</span>
+                <span class="value">{{ formatFileSize(file.size_bytes) }}</span>
+              </div>
+              <div class="detail-item" *ngIf="file.records_count !== undefined">
+                <span class="label">Records:</span>
+                <span class="value">{{ file.records_count.toLocaleString() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Information -->
+      <div class="system-info-section">
+        <h4>System Information</h4>
+        <div class="system-info-grid">
+          <div class="info-item">
+            <span class="label">Total Cache Size:</span>
+            <span class="value">{{ formatFileSize(cacheOverview.total_cache_size) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Total File Size:</span>
+            <span class="value">{{ formatFileSize(cacheOverview.total_file_size) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Active Caches:</span>
+            <span class="value">{{ cacheOverview.active_caches_count }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Last Check:</span>
+            <span class="value">{{ formatDate(cacheOverview.last_check) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Data Message -->
+    <div *ngIf="!loading && !cacheOverview" class="no-data-message">
+      <div class="message-content">
+        <span class="message-icon">📊</span>
+        <h3>No Cache Data Available</h3>
+        <p>Click "Refresh Overview" to load cache information.</p>
+      </div>
+    </div>
+  </div>
+</div>

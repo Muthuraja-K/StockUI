@@ -1,0 +1,437 @@
+<div class="stock-prediction-banner">
+  <h2>AI Stock Prediction & Analysis</h2>
+</div>
+<div class="stock-prediction-wrapper">
+  <div class="stock-prediction-controls">
+    <div class="left-controls">
+      <!-- Stock Ticker Input -->
+      <div class="search-box">
+        <span class="search-icon">📈</span>
+        <input 
+          type="text" 
+          [(ngModel)]="ticker" 
+          (input)="onTickerChange()"
+          placeholder="Enter stock ticker (e.g., AAPL)"
+          maxlength="10"
+        />
+      </div>
+
+      <!-- Model Type Selector -->
+      <div class="search-box">
+        <span class="search-icon">🤖</span>
+        <select 
+          [(ngModel)]="selectedModelType" 
+          (change)="onModelTypeChange()"
+        >
+          <option *ngFor="let model of modelTypes" [value]="model.value">
+            {{ model.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Prediction Days Selector -->
+      <div class="search-box">
+        <span class="search-icon">📅</span>
+        <select 
+          [(ngModel)]="predictionDays" 
+          (change)="onDaysChange()"
+        >
+          <option *ngFor="let option of daysOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="right-controls">
+      <!-- View Mode Toggle -->
+      <div class="view-mode-toggle">
+        <span class="toggle-label">View:</span>
+        <div class="toggle-buttons">
+                  <button 
+          class="toggle-btn" 
+          [class.active]="viewMode === 'chart'"
+          (click)="setViewMode('chart')"
+          title="Interactive charts and visualizations"
+        >
+          📈 Chart
+        </button>
+        <button 
+          class="toggle-btn" 
+          [class.active]="viewMode === 'table'"
+          (click)="setViewMode('table')"
+          title="Table-based results with detailed data"
+        >
+          📊 Table
+        </button>
+        <button 
+          class="toggle-btn" 
+          [class.active]="viewMode === 'chat'"
+          (click)="setViewMode('chat')"
+          title="Chat-based results with AI analysis"
+        >
+          💬 Chat
+        </button>
+        <button 
+          class="toggle-btn" 
+          [class.active]="viewMode === 'both'"
+          (click)="setViewMode('both')"
+          title="Show all views simultaneously"
+        >
+          🎯 All
+        </button>
+        </div>
+      </div>
+
+      <!-- Get Prediction Button -->
+      <button 
+        (click)="getStockPrediction()" 
+        [disabled]="loading || !ticker.trim()"
+        class="action-btn primary"
+      >
+        <span *ngIf="!loading">🔮 Get Prediction</span>
+        <span *ngIf="loading">⏳ Analyzing...</span>
+      </button>
+
+      <!-- Clear Results Button -->
+      <button 
+        *ngIf="hasSearched"
+        (click)="clearResults()"
+        class="action-btn secondary"
+      >
+        🗑️ Clear
+      </button>
+
+
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="error-message">
+    <span class="error-icon">⚠️</span>
+    {{ error }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Analyzing {{ ticker }} with {{ selectedModelType }} model...</p>
+    <small>This may take a few moments for comprehensive analysis</small>
+  </div>
+
+     <!-- Quick Summary (only for table view/both view and models that provide summary data) -->
+   <div *ngIf="(viewMode === 'table' || viewMode === 'both') && shouldShowQuickSummary() && predictionSummary" class="summary-and-models-grid">
+     <!-- Quick Summary -->
+     <div class="quick-summary">
+       <div class="summary-header">
+         <h3>📊 Quick Summary - {{ ticker }}</h3>
+         <div class="recommendation-badge" [class]="getRecommendationClass(predictionSummary.recommendation)">
+           {{ predictionSummary.recommendation }}
+         </div>
+       </div>
+       
+       <div class="summary-grid">
+         <div class="summary-item">
+           <span class="label">Current Price:</span>
+           <span class="value">{{ formatPrice(predictionSummary.current_price) }}</span>
+         </div>
+         
+         <div *ngIf="predictionSummary.average_predicted_change !== undefined" class="summary-item">
+           <span class="label">Predicted Change:</span>
+           <span class="value" [class]="predictionSummary.average_predicted_change >= 0 ? 'positive' : 'negative'">
+             {{ formatPercentage(predictionSummary.average_predicted_change) }}
+           </span>
+         </div>
+         
+         <div *ngIf="predictionSummary.average_confidence !== undefined" class="summary-item">
+           <span class="label">Confidence:</span>
+           <span class="value" [class]="getConfidenceClass(predictionSummary.average_confidence)">
+             {{ formatConfidence(predictionSummary.average_confidence) }}
+           </span>
+         </div>
+       </div>
+     </div>
+
+     <!-- Model-specific summaries -->
+     <div *ngIf="shouldShowLSTM() && predictionSummary.prediction_summary.lstm" class="model-summary">
+       <h4>🧠 LSTM Neural Network</h4>
+       <div class="model-details">
+         <span>{{ getPredictionPeriodLabel() }} Prediction: {{ formatPrice(predictionSummary.prediction_summary.lstm.week_prediction) }}</span>
+         <span>Change: {{ formatPercentage(predictionSummary.prediction_summary.lstm.week_change_percent) }}</span>
+         <span>Confidence: {{ formatConfidence(predictionSummary.prediction_summary.lstm.confidence) }}</span>
+       </div>
+     </div>
+
+     <div *ngIf="shouldShowRegression() && predictionSummary.prediction_summary.regression" class="model-summary">
+       <h4>📈 Linear Regression</h4>
+       <div class="model-details">
+         <span>{{ getPredictionPeriodLabel() }} Prediction: {{ formatPrice(predictionSummary.prediction_summary.regression.week_prediction) }}</span>
+         <span>Change: {{ formatPercentage(predictionSummary.prediction_summary.regression.week_change_percent) }}</span>
+         <span>Confidence: {{ formatConfidence(predictionSummary.prediction_summary.regression.confidence) }}</span>
+       </div>
+     </div>
+   </div>
+
+  <!-- Charts Section (only for chart view/both view and models that provide numerical predictions) -->
+  <div *ngIf="(viewMode === 'chart' || viewMode === 'both') && shouldShowCharts()" class="charts-section">
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3>📈 Price Prediction Chart</h3>
+        <div class="price-info">
+          <span class="entry-price">Entry: {{ formatPrice(predictionResult?.current_price || 0) }}</span>
+          <span class="prediction-price">Target: {{ formatPrice(getSelectedModelFinalPriceNumber()) }}</span>
+          <span class="price-change" [class]="getSelectedModelPriceChangeNumber() >= 0 ? 'positive' : 'negative'">
+            {{ getSelectedModelPriceChangeNumber() >= 0 ? '+' : '' }}{{ formatPercentage(getSelectedModelPriceChangeNumber()) }}
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas #priceChartCanvas></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3>📊 Prediction Changes</h3>
+        <div class="price-info">
+          <span class="period-info">{{ getPredictionPeriodLabel() }} Analysis</span>
+          <span class="model-info">{{ selectedModelType === 'both' ? 'Combined Models' : (selectedModelType === 'lstm' ? 'LSTM Model' : 'Regression Model') }}</span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas #predictionChartCanvas></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3>🎯 Model Confidence</h3>
+        <div class="price-info">
+          <span class="confidence-info">Prediction Reliability</span>
+          <span class="ticker-info">{{ ticker }} Analysis</span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas #confidenceChartCanvas></canvas>
+      </div>
+    </div>
+  </div>
+
+     <!-- Table View (only for table view/both view) -->
+   <div *ngIf="(viewMode === 'table' || viewMode === 'both') && predictionResult" class="table-view">
+     <div class="detailed-results">
+       <h3>📊 Detailed Prediction Data - {{ ticker }}</h3>
+       
+       <div class="tables-grid">
+         <!-- LSTM Predictions -->
+         <div *ngIf="shouldShowLSTM() && hasLSTMPrediction()" class="result-section">
+           <h4>🧠 LSTM Neural Network Predictions</h4>
+           <table class="prediction-table">
+             <thead>
+               <tr>
+                 <th>Date</th>
+                 <th>Predicted Price</th>
+                 <th>Change (%)</th>
+                 <th>Confidence</th>
+               </tr>
+             </thead>
+             <tbody>
+               <tr *ngFor="let prediction of predictionResult.lstm_prediction.predictions; let i = index">
+                 <td>{{ predictionResult.lstm_prediction.prediction_dates?.[i] || 'Day ' + (i + 1) }}</td>
+                 <td>{{ formatPrice(prediction) }}</td>
+                 <td [class]="((prediction - predictionResult.current_price) / predictionResult.current_price * 100) >= 0 ? 'positive' : 'negative'">
+                   {{ formatPercentage((prediction - predictionResult.current_price) / predictionResult.current_price * 100) }}
+                 </td>
+                 <td>
+                   <span [class]="'confidence-badge ' + getConfidenceClass(predictionResult.lstm_prediction.confidence)">
+                     {{ formatConfidence(predictionResult.lstm_prediction.confidence) }}
+                   </span>
+                 </td>
+               </tr>
+             </tbody>
+           </table>
+         </div>
+
+         <!-- Regression Predictions -->
+         <div *ngIf="shouldShowRegression() && hasRegressionPrediction()" class="result-section">
+           <h4>📈 Linear Regression Predictions</h4>
+           <table class="prediction-table">
+             <thead>
+               <tr>
+                 <th>Date</th>
+                 <th>Predicted Price</th>
+                 <th>Change (%)</th>
+                 <th>Confidence</th>
+               </tr>
+             </thead>
+             <tbody>
+               <tr *ngFor="let prediction of predictionResult.regression_prediction.predictions; let i = index">
+                 <td>{{ predictionResult.regression_prediction.prediction_dates?.[i] || 'Day ' + (i + 1) }}</td>
+                 <td>{{ formatPrice(prediction) }}</td>
+                 <td [class]="((prediction - predictionResult.current_price) / predictionResult.current_price * 100) >= 0 ? 'positive' : 'negative'">
+                   {{ formatPercentage((prediction - predictionResult.current_price) / predictionResult.current_price * 100) }}
+                 </td>
+                 <td>
+                   <span [class]="'confidence-badge ' + getConfidenceClass(predictionResult.regression_prediction.confidence)">
+                     {{ formatConfidence(predictionResult.regression_prediction.confidence) }}
+                   </span>
+                 </td>
+               </tr>
+             </tbody>
+           </table>
+         </div>
+
+         <!-- Combined Predictions -->
+         <div *ngIf="shouldShowCombined() && hasCombinedPrediction()" class="result-section">
+           <h4>🎯 Combined Model Predictions</h4>
+           <table class="prediction-table">
+             <thead>
+               <tr>
+                 <th>Date</th>
+                 <th>Combined Price</th>
+                 <th>Change (%)</th>
+                 <th>Model Agreement</th>
+               </tr>
+             </thead>
+             <tbody>
+               <tr *ngFor="let prediction of predictionResult.combined_prediction.predictions; let i = index">
+                 <td>{{ predictionResult.combined_prediction.prediction_dates?.[i] || 'Day ' + (i + 1) }}</td>
+                 <td>{{ formatPrice(prediction) }}</td>
+                 <td [class]="((prediction - predictionResult.current_price) / predictionResult.current_price * 100) >= 0 ? 'positive' : 'negative'">
+                   {{ formatPercentage((prediction - predictionResult.current_price) / predictionResult.current_price * 100) }}
+                 </td>
+                 <td class="neutral">{{ getModelAgreement() }}</td>
+               </tr>
+             </tbody>
+           </table>
+         </div>
+       </div>
+     </div>
+   </div>
+
+  <!-- Chat View (only for chat view/both view) -->
+  <div *ngIf="(viewMode === 'chat' || viewMode === 'both') && predictionResult" class="chat-view">
+    <div class="chat-container">
+      <h3>💬 AI Analysis & Insights - {{ ticker }}</h3>
+      
+      <!-- Current Analysis -->
+      <div class="chat-message ai-message">
+        <div class="message-header">
+          <span class="ai-avatar">🤖</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <p><strong>AI Analyst:</strong> I've analyzed {{ ticker }} using {{ getSelectedModelLabel() }}. Here's my comprehensive assessment:</p>
+        </div>
+      </div>
+
+      <!-- LSTM Analysis -->
+      <div *ngIf="shouldShowLSTM() && hasLSTMPrediction()" class="chat-message ai-message">
+        <div class="message-header">
+          <span class="ai-avatar">🧠</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <h4>LSTM Neural Network Analysis</h4>
+          <p><strong>Entry Price (Current):</strong> {{ formatPrice(predictionResult.current_price) }}</p>
+          <p><strong>Expected Price ({{ getPredictionPeriodLabel() }}):</strong> {{ getLSTMFinalPrice() }}</p>
+          <p><strong>Potential Change:</strong> {{ getLSTMPriceChange() }}</p>
+          <p><strong>Trend Pattern:</strong> {{ getLSTMTrend() }}</p>
+          <p><strong>Model Confidence:</strong> {{ formatConfidence(predictionResult.lstm_prediction.confidence) }}</p>
+          <p><strong>Key Insight:</strong> {{ getLSTMInsight() }}</p>
+          <p><strong>Recommendation:</strong> {{ getLSTMRecommendation() }}</p>
+        </div>
+      </div>
+
+      <!-- Regression Analysis -->
+      <div *ngIf="shouldShowRegression() && hasRegressionPrediction()" class="chat-message ai-message">
+        <div class="message-header">
+          <span class="ai-avatar">📈</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <h4>Linear Regression Analysis</h4>
+          <p><strong>Entry Price (Current):</strong> {{ formatPrice(predictionResult.current_price) }}</p>
+          <p><strong>Expected Price ({{ getPredictionPeriodLabel() }}):</strong> {{ getRegressionFinalPrice() }}</p>
+          <p><strong>Potential Change:</strong> {{ getRegressionPriceChange() }}</p>
+          <p><strong>Statistical Pattern:</strong> {{ getRegressionPattern() }}</p>
+          <p><strong>Model Confidence:</strong> {{ formatConfidence(predictionResult.regression_prediction.confidence) }}</p>
+          <p><strong>Key Insight:</strong> {{ getRegressionInsight() }}</p>
+          <p><strong>Recommendation:</strong> {{ getRegressionRecommendation() }}</p>
+        </div>
+      </div>
+
+      <!-- Combined Analysis -->
+      <div *ngIf="shouldShowCombined() && hasCombinedPrediction()" class="chat-message ai-message">
+        <div class="message-header">
+          <span class="ai-avatar">🎯</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <h4>Combined Model Analysis</h4>
+          <p><strong>Entry Price (Current):</strong> {{ formatPrice(predictionResult.current_price) }}</p>
+          <p><strong>Expected Price ({{ getPredictionPeriodLabel() }}):</strong> {{ getCombinedFinalPrice() }}</p>
+          <p><strong>Potential Change:</strong> {{ getCombinedPriceChange() }}</p>
+          <p><strong>Overall Sentiment:</strong> {{ getCombinedSentiment() }}</p>
+          <p><strong>Risk Assessment:</strong> {{ getRiskLevel() }}</p>
+          <p><strong>Model Agreement:</strong> {{ getModelAgreement() }}</p>
+          <p><strong>Agreement Implication:</strong> {{ getAgreementImplication() }}</p>
+        </div>
+      </div>
+
+      <!-- Price Summary -->
+      <div class="chat-message ai-message">
+        <div class="message-header">
+          <span class="ai-avatar">💰</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <h4>Investment Price Summary</h4>
+          <p><strong>Current Entry Price:</strong> {{ formatPrice(predictionResult.current_price) }}</p>
+          <p><strong>Analysis Period:</strong> {{ predictionDays }} days ({{ getPredictionPeriodLabel() }})</p>
+          <div *ngIf="selectedModelType !== 'both'">
+            <p><strong>Expected Exit Price:</strong> {{ getSelectedModelFinalPrice() }}</p>
+            <p><strong>Potential Return:</strong> {{ getSelectedModelPriceChange() }}</p>
+          </div>
+          <div *ngIf="selectedModelType === 'both'">
+            <p><strong>LSTM Expected Price:</strong> {{ getLSTMFinalPrice() }} ({{ getLSTMPriceChange() }})</p>
+            <p><strong>Regression Expected Price:</strong> {{ getRegressionFinalPrice() }} ({{ getRegressionPriceChange() }})</p>
+            <p><strong>Combined Expected Price:</strong> {{ getCombinedFinalPrice() }} ({{ getCombinedPriceChange() }})</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Recommendation -->
+      <div class="chat-message ai-message final-recommendation">
+        <div class="message-header">
+          <span class="ai-avatar">💡</span>
+          <span class="timestamp">{{ getCurrentTime() }}</span>
+        </div>
+        <div class="message-content">
+          <h4>Final Investment Recommendation</h4>
+          <div class="recommendation-content">
+            <p>{{ getFinalRecommendation() }}</p>
+          </div>
+          <div class="action-buttons">
+            <button class="copy-btn" (click)="copyToClipboard(getFinalRecommendation())">
+              📋 Copy Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+ 
+
+  <!-- No Results Message -->
+  <div *ngIf="!loading && hasSearched && !predictionResult && !error" class="no-results">
+    <div class="no-results-content">
+      <span class="no-results-icon">📊</span>
+      <h3>No Results Found</h3>
+      <p>Unable to generate predictions for {{ ticker }}. Please check the ticker symbol and try again.</p>
+    </div>
+  </div>
+
+ 
+</div>

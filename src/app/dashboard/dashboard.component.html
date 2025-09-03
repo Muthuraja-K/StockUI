@@ -1,0 +1,550 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <div class="header-actions">
+      <button 
+        class="btn-secondary" 
+        (click)="refreshAllPrices()"
+        [disabled]="watchlistLength === 0"
+        [title]="watchlistLength === 0 ? 'No stocks in watchlist to refresh' : 'Refresh all stock prices'"
+      >
+        🔄 Refresh Prices
+      </button>
+      
+      @if (isSafariIPhone()) {
+        <button 
+          class="btn-secondary" 
+          (click)="sendTestNotification()"
+          [title]="'Test in-app notification (Safari on iOS)'"
+        >
+          🧪 Test Notifications
+        </button>
+      } @else {
+        <button 
+          class="btn-primary" 
+          (click)="requestNotificationPermission()"
+          [title]="'Request permission to send browser notifications'"
+        >
+          {{ notificationPermission === 'granted' ? '✅ Notifications Enabled' : '🔔 Allow Browser Notifications' }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'watchlist'"
+      (click)="setActiveTab('watchlist')"
+    >
+      📊 My Watchlist
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'watchlist-notifications'"
+      (click)="setActiveTab('watchlist-notifications')"
+    >
+      🔔 Watchlist Notifications
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'email-notifications'"
+      (click)="setActiveTab('email-notifications')"
+    >
+      📧 Email Notifications
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Watchlist Tab -->
+    @if (activeTab === 'watchlist') {
+      <div class="tab-panel">
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="sector-filter">Sector:</label>
+              <select id="sector-filter" [(ngModel)]="filterSector" (change)="filterStocks()">
+                <option value="">All Sectors</option>
+                @for (sector of sectors; track sector) {
+                  <option [value]="sector">{{ sector }}</option>
+                }
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label for="ticker-filter">Stock:</label>
+              <input 
+                id="ticker-filter" 
+                type="text" 
+                [(ngModel)]="filterTicker" 
+                (input)="filterStocks()"
+                placeholder="Search ticker..."
+              >
+            </div>
+            
+            <button class="btn-secondary" (click)="clearFilters()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Watchlist Section -->
+        <div class="watchlist-section">
+          <div class="section-header">
+            <h2>My Watchlist</h2>
+            <button class="btn-primary" (click)="showAddWatchlistForm()">+ Add Stock</button>
+          </div>
+          
+          @if (loading) {
+            <div class="loading-content">
+              <p>Loading watchlist...</p>
+            </div>
+          }
+          
+          @if (!loading && watchlistLength > 0) {
+            <div class="watchlist-grid">
+              @for (item of watchlist; track item.ticker) {
+                <div class="watchlist-item" [ngClass]="getPriceStatus(item.ticker, item.low, item.high)">
+                  <div class="item-header">
+                    <h3>{{ item.ticker }}</h3>
+                    <div class="item-actions">
+                      <button class="btn-icon" (click)="showEditWatchlistForm(item)">✏️</button>
+                      <button class="btn-icon" (click)="removeFromWatchlist(item.ticker)">🗑️</button>
+                    </div>
+                  </div>
+                  
+                  <div class="price-info">
+                    <div class="price-line">
+                      <span class="price-item">
+                        <span class="label">Price:</span>
+                        <span class="value">${{ getFormattedPrice(item.ticker) }}</span>
+                      </span>
+                      <span class="threshold low">
+                        <span class="label">L:</span>
+                        <span class="value">${{ item.low }}</span>
+                      </span>
+                      <span class="threshold high">
+                        <span class="label">H:</span>
+                        <span class="value">${{ item.high }}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          
+          @if (!loading && watchlistLength === 0) {
+            <div class="empty-state">
+              <p>No stocks in your watchlist yet.</p>
+              <button class="btn-primary" (click)="showAddWatchlistForm()">Add Your First Stock</button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Watchlist Notifications Tab -->
+    @if (activeTab === 'watchlist-notifications') {
+      <div class="tab-panel">
+        <div class="notifications-section">
+          <div class="section-header">
+            <h2>🔔 Watchlist Notifications</h2>
+            <p class="section-description">
+              Control how you receive notifications for price alerts and watchlist updates.
+            </p>
+          </div>
+          
+          <!-- Watchlist Notification Toggle -->
+          <div class="notification-toggle-section">
+            <div class="toggle-container">
+              <label class="toggle-label">
+                <span class="toggle-text">Enable Price Alerts</span>
+                <div class="toggle-switch" [class.active]="dashboardData?.isEnabled">
+                  <input 
+                    type="checkbox" 
+                    [checked]="dashboardData?.isEnabled"
+                    (change)="toggleNotification()"
+                    [disabled]="watchlistLength === 0"
+                    class="toggle-input"
+                  >
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              @if (watchlistLength === 0) {
+                <span class="disabled-indicator">No stocks in watchlist</span>
+              }
+            </div>
+            <p class="toggle-description">
+              When enabled, you'll receive notifications when stocks in your watchlist reach their price thresholds (low/high targets).
+            </p>
+          </div>
+          
+          <!-- Current Status -->
+          <div class="status-section">
+            <h3>Current Status</h3>
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">Price Alerts:</span>
+                <span class="status-value" [class.enabled]="dashboardData?.isEnabled" [class.disabled]="!dashboardData?.isEnabled">
+                  {{ dashboardData?.isEnabled ? '🔔 Enabled' : '🔕 Disabled' }}
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Watchlist Stocks:</span>
+                <span class="status-value">{{ watchlistLength }} stocks</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Browser Notifications:</span>
+                <span class="status-value" [class.enabled]="notificationPermission === 'granted'" [class.disabled]="notificationPermission !== 'granted'">
+                  {{ notificationPermission === 'granted' ? '✅ Enabled' : '❌ Disabled' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Browser Notification Permission -->
+          <div class="permission-section">
+            <h3>Browser Notification Permission</h3>
+            
+            @if (isSafariIPhone()) {
+              <div class="safari-warning">
+                <p class="permission-description warning">
+                  ⚠️ <strong>Safari on iPhone/iPad does not support browser notifications.</strong>
+                </p>
+                <p class="permission-description">
+                  You'll receive in-app notifications instead when price alerts are triggered.
+                </p>
+                <button 
+                  class="btn-secondary" 
+                  (click)="sendTestNotification()"
+                  [title]="'Test in-app notification'"
+                >
+                  🧪 Test In-App Notification
+                </button>
+              </div>
+            } @else {
+              <p class="permission-description">
+                To receive price alerts, you need to allow browser notifications. Click the button below to request permission.
+              </p>
+              <button 
+                class="btn-primary" 
+                (click)="requestNotificationPermission()"
+                [title]="'Request permission to send browser notifications'"
+              >
+                {{ notificationPermission === 'granted' ? '✅ Notifications Enabled' : '🔔 Allow Browser Notifications' }}
+              </button>
+            }
+            
+            <!-- Browser Status Info -->
+            <div class="browser-status">
+              <p class="status-text">{{ getNotificationStatusMessage() }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Email Notifications Tab -->
+    @if (activeTab === 'email-notifications') {
+      <div class="tab-panel">
+        <div class="notifications-section">
+          <div class="section-header">
+            <h2>📧 Earnings Email Notifications</h2>
+            <div class="header-controls">
+              <button class="btn-primary" (click)="showAddEmailForm()">+ Add Email</button>
+            </div>
+          </div>
+          
+          <!-- Email Notification Toggle -->
+          <div class="notification-toggle-section">
+            <div class="toggle-container">
+              <label class="toggle-label">
+                <span class="toggle-text">Enable Email Notifications</span>
+                <div class="toggle-switch" [class.active]="emailNotificationsEnabled">
+                  <input 
+                    type="checkbox" 
+                    [checked]="emailNotificationsEnabled"
+                    (change)="toggleEmailNotifications()"
+                    [disabled]="preferencesLoading"
+                    class="toggle-input"
+                  >
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              @if (preferencesLoading) {
+                <span class="loading-indicator">Updating...</span>
+              }
+            </div>
+            <p class="toggle-description">
+              When enabled, you'll receive email notifications for earnings results from stocks in your watchlist.
+            </p>
+          </div>
+          
+          <!-- Push Notification Toggle -->
+          <div class="notification-toggle-section">
+            <div class="toggle-container">
+              <label class="toggle-label">
+                <span class="toggle-text">Enable Push Notifications</span>
+                <div class="toggle-switch" [class.active]="pushNotificationsEnabled">
+                  <input 
+                    type="checkbox" 
+                    [checked]="pushNotificationsEnabled"
+                    (change)="togglePushNotifications()"
+                    [disabled]="pushPreferencesLoading"
+                    class="toggle-input"
+                  >
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              @if (pushPreferencesLoading) {
+                <span class="loading-indicator">Updating...</span>
+              }
+            </div>
+            <p class="toggle-description">
+              When enabled, you'll receive push notifications for earnings results from stocks in your watchlist.
+            </p>
+          </div>
+          
+          @if (emailLoading) {
+            <div class="loading-content">
+              <p>Loading email recipients...</p>
+            </div>
+          }
+          
+          @if (!emailLoading && emailRecipients.length > 0) {
+            <div class="email-grid">
+              @for (email of emailRecipients; track email) {
+                <div class="email-item">
+                  <div class="email-info">
+                    <span class="email-icon">📧</span>
+                    <span class="email-address">{{ email }}</span>
+                  </div>
+                  <button class="btn-icon" (click)="removeEmailRecipient(email)" title="Remove email">🗑️</button>
+                </div>
+              }
+            </div>
+          }
+          
+          @if (!emailLoading && emailRecipients.length === 0) {
+            <div class="empty-state">
+              <p>No email recipients configured yet.</p>
+              <p>Add an email address to receive earnings notifications.</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Add Watchlist Form Modal -->
+  @if (showAddForm) {
+    <div class="modal-overlay" (click)="hideForms()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Add to Watchlist</h3>
+          <button class="btn-close" (click)="hideForms()">×</button>
+        </div>
+        
+        <form (ngSubmit)="addToWatchlist()" class="watchlist-form">
+          <div class="form-group">
+            <label for="new-ticker">Stock Ticker:</label>
+            <input 
+              id="new-ticker" 
+              type="text" 
+              [(ngModel)]="newItem.ticker" 
+              name="ticker"
+              placeholder="e.g., AAPL"
+              required
+            >
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="new-low">Low Threshold:</label>
+              <input 
+                id="new-low" 
+                type="number" 
+                [(ngModel)]="newItem.low" 
+                name="low"
+                step="0.01"
+                min="0"
+                required
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="new-high">High Threshold:</label>
+              <input 
+                id="new-high" 
+                type="number" 
+                [(ngModel)]="newItem.high" 
+                name="high"
+                step="0.01"
+                min="0"
+                required
+              >
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="hideForms()">Cancel</button>
+            <button type="submit" class="btn-primary">Add to Watchlist</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Edit Watchlist Form Modal -->
+  @if (showEditForm) {
+    <div class="modal-overlay" (click)="hideForms()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Edit Watchlist Item</h3>
+          <button class="btn-close" (click)="hideForms()">×</button>
+        </div>
+        
+        <form (ngSubmit)="updateWatchlist()" class="watchlist-form">
+          <div class="form-group">
+            <label for="edit-ticker">Stock Ticker:</label>
+            <input 
+              id="edit-ticker" 
+              type="text" 
+              [(ngModel)]="editItem.ticker" 
+              name="ticker"
+              readonly
+            >
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-low">Low Threshold:</label>
+              <input 
+                id="edit-low" 
+                type="number" 
+                [(ngModel)]="editItem.low" 
+                name="low"
+                step="0.01"
+                min="0"
+                required
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-high">High Threshold:</label>
+              <input 
+                id="edit-high" 
+                type="number" 
+                [(ngModel)]="editItem.high" 
+                name="high"
+                step="0.01"
+                min="0"
+                required
+              >
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="hideForms()">Cancel</button>
+            <button type="submit" class="btn-primary">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Error Modal -->
+  @if (showErrorModal) {
+    <div class="modal-overlay" (click)="closeErrorModal()">
+      <div class="modal-content error-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header error">
+          <h3>{{ errorTitle }}</h3>
+          <button class="btn-close" (click)="closeErrorModal()">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <p>{{ errorMessage }}</p>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn-primary" (click)="closeErrorModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Add Email Form Modal -->
+  @if (showEmailForm) {
+    <div class="modal-overlay" (click)="hideEmailForm()">
+      <div class="modal-content email-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Add Email Recipient</h3>
+          <button class="btn-close" (click)="hideEmailForm()">×</button>
+        </div>
+        
+        <form (ngSubmit)="addEmailRecipient()" class="email-form">
+          <div class="form-group">
+            <label for="new-email">Email Address:</label>
+            <input 
+              id="new-email" 
+              type="email" 
+              [(ngModel)]="newEmail" 
+              name="email"
+              placeholder="user@example.com"
+              required
+            >
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="hideEmailForm()">Cancel</button>
+            <button type="submit" class="btn-primary">Add Email</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Confirm Dialog Modal -->
+  @if (showConfirmModal) {
+    <div class="modal-overlay" (click)="closeConfirmModal()">
+      <div class="modal-content confirm-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ confirmTitle }}</h3>
+          <button class="btn-close" (click)="closeConfirmModal()">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <p>{{ confirmMessage }}</p>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn-secondary" (click)="closeConfirmModal()">Cancel</button>
+          <button class="btn-primary" (click)="confirmAction()">Confirm</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Success Modal -->
+  @if (showSuccessModal) {
+    <div class="modal-overlay" (click)="closeSuccessModal()">
+      <div class="modal-content success-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header success">
+          <h3>{{ successTitle }}</h3>
+          <button class="btn-close" (click)="closeSuccessModal()">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <p>{{ successMessage }}</p>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn-primary" (click)="closeSuccessModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,257 @@
+.download-section {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+
+    h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #666;
+      margin: 0;
+    }
+  }
+
+  .access-denied {
+    margin-bottom: 30px;
+    
+    .access-denied-content {
+      background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      border: 2px solid #feb2b2;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(254, 178, 178, 0.2);
+
+      .access-denied-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+
+      h3 {
+        color: #c53030;
+        margin: 0 0 15px 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      p {
+        color: #742a2a;
+        margin: 0 0 10px 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+
+        strong {
+          color: #c53030;
+        }
+      }
+
+      .access-info {
+        margin-top: 25px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #feb2b2;
+
+        p {
+          color: #742a2a;
+          margin: 0 0 15px 0;
+          font-weight: 600;
+        }
+
+        ul {
+          margin: 0;
+          padding-left: 20px;
+          color: #742a2a;
+
+          li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+          }
+        }
+      }
+    }
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  .download-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+
+    .download-option {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+
+      &:hover {
+        border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+      }
+
+      &.selected {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+      }
+
+      .option-icon {
+        font-size: 2rem;
+        margin-right: 20px;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .option-content {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 5px 0;
+          color: #333;
+          font-size: 1.1rem;
+        }
+
+        p {
+          margin: 0;
+          color: #666;
+          font-size: 0.9rem;
+        }
+      }
+
+      .option-check {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+
+        span {
+          font-size: 1.2rem;
+        }
+      }
+
+      &.selected .option-check {
+        opacity: 1;
+      }
+    }
+  }
+
+  .download-actions {
+    text-align: center;
+    margin-bottom: 20px;
+
+    .download-btn {
+      padding: 12px 30px;
+      font-size: 1.1rem;
+      min-width: 200px;
+    }
+  }
+
+  .download-progress {
+    text-align: center;
+    margin-bottom: 30px;
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+
+      .progress-fill {
+        height: 100%;
+        background-color: #007bff;
+        transition: width 0.3s ease;
+        border-radius: 4px;
+      }
+    }
+
+    .progress-text {
+      color: #666;
+      margin: 0;
+      font-weight: 500;
+    }
+  }
+
+  .download-info {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+
+    h3 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #555;
+
+      li {
+        margin-bottom: 8px;
+        line-height: 1.5;
+
+        strong {
+          color: #333;
+        }
+      }
+    }
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+
+    &.btn-primary {
+      background-color: #007bff;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      &:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+  }
+}

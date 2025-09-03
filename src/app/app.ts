@@ -14,6 +14,7 @@ export class App implements OnInit {
   currentUser: User | null = null;
   isAuthenticated = false;
   isAdmin = false;
+  isSuperuser = false;
   isMobileMenuOpen = false;
 
   constructor(private authService: AuthService, private router: Router) {}
@@ -25,6 +26,8 @@ export class App implements OnInit {
       this.currentUser = user;
       this.isAuthenticated = !!user;
       this.isAdmin = user?.role === 'admin';
+      // Superuser check: Only users with username "superuser" can access download functionality
+      this.isSuperuser = user?.username === 'superuser';
     });
 
     // Refresh user data from server to get updated firstname/lastname

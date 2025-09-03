@@ -14,7 +14,7 @@
             <!-- Trend arrow -->
             <path d="M22 8 L26 12 L22 16" stroke="#4caf50" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="logo-text">Stock Information</span>
+          <span class="logo-text">Financial Inventory</span>
         </span>
       </div>
       
@@ -37,9 +37,15 @@
       <li class="menu-item" *ngIf="isAdmin">
         <a routerLink="/users" routerLinkActive="active" (click)="closeMobileMenu()">Users</a>
       </li>
+      <li class="menu-item" *ngIf="isAdmin">
+        <a routerLink="/admin-cache" routerLinkActive="active" (click)="closeMobileMenu()">Populate Cache</a>
+      </li>
       <!-- User-accessible menu items -->
       <li class="menu-item">
-        <a routerLink="/stock-details" routerLinkActive="active" (click)="closeMobileMenu()">Stock History</a>
+        <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMobileMenu()">Dashboard</a>
+      </li>
+      <li class="menu-item">
+        <a routerLink="/stock-history" routerLinkActive="active" (click)="closeMobileMenu()">Stock History</a>
       </li>
       <li class="menu-item">
         <a routerLink="/stock-summary" routerLinkActive="active" (click)="closeMobileMenu()">Stock Summary</a>
@@ -48,6 +54,9 @@
         <a routerLink="/earning-summary" routerLinkActive="active" (click)="closeMobileMenu()">Earning Summary</a>
       </li>
       <li class="menu-item">
+        <a routerLink="/stock-prediction" routerLinkActive="active" (click)="closeMobileMenu()">Stock Prediction</a>
+      </li>
+      <li class="menu-item" *ngIf="isSuperuser">
         <a routerLink="/download" routerLinkActive="active" (click)="closeMobileMenu()">Download</a>
       </li>
       <!-- User info and logout -->
