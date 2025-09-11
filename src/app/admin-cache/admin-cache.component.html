@@ -56,6 +56,73 @@
         </div>
       </div>
 
+      <!-- Earnings Management Section -->
+      <div class="earnings-management-section">
+        <h4>Earnings Management</h4>
+        <div class="earnings-controls">
+          <div class="earnings-status" *ngIf="earningsStatus">
+            <div class="status-summary">
+              <div class="status-item">
+                <span class="label">Total Stocks:</span>
+                <span class="value">{{ earningsStatus.total_stocks }}</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Complete Data:</span>
+                <span class="value">{{ earningsStatus.stocks_with_complete_data }} ({{ earningsStatus.completion_percentage }}%)</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Future Earnings:</span>
+                <span class="value">{{ earningsStatus.stocks_with_future_earnings }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="earnings-actions">
+            <button class="btn btn-primary" (click)="loadEarningsStatus()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              Refresh Earnings Status
+            </button>
+            <button class="btn btn-success" (click)="sendEarningsEmail()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              Send Earnings Email
+            </button>
+            <button class="btn btn-warning" (click)="runEnhancedEarningsUpdate()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              Update Enhanced Earnings
+            </button>
+          </div>
+          
+          <div class="earnings-recreation">
+            <h5>Recreate Earnings Summary</h5>
+            <div class="recreation-controls">
+              <button class="btn btn-danger" (click)="recreateEarningsSummary()" [disabled]="loading">
+                <span *ngIf="loading" class="spinner">⟳</span>
+                Recreate from Scratch
+              </button>
+              
+              <div class="date-update-controls">
+                <label for="startDate">Update from Date:</label>
+                <input 
+                  type="date" 
+                  id="startDate" 
+                  [(ngModel)]="selectedStartDate" 
+                  [max]="getMaxDate()"
+                  class="date-input"
+                >
+                <button 
+                  class="btn btn-info" 
+                  (click)="updateEarningsFromDate()" 
+                  [disabled]="loading || !selectedStartDate"
+                >
+                  <span *ngIf="loading" class="spinner">⟳</span>
+                  Update from Date
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Cache Status Overview -->
       <div class="cache-status-section">
         <h4>Cache Status Overview</h4>

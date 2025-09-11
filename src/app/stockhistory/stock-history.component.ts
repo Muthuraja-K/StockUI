@@ -400,15 +400,15 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
   // Auto-refresh functionality
   toggleAutoRefresh() {
     if (this.isAutoRefreshEnabled) {
+      console.log('StockHistory: Toggling auto-refresh OFF');
       this.stopAutoRefresh();
-
     } else {
       if (this.stocks.length === 0) {
-
+        console.log('StockHistory: Cannot start auto-refresh - no stocks loaded');
         return;
       }
+      console.log('StockHistory: Toggling auto-refresh ON');
       this.startAutoRefresh();
-
     }
   }
 
@@ -417,7 +417,7 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
     const tickers = this.stocks.map(stock => stock.ticker);
     
     if (tickers.length === 0) {
-
+      console.log('StockHistory: Cannot start auto-refresh - no stocks loaded');
       return;
     }
     
@@ -425,29 +425,47 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
     this.stopAutoRefresh();
     
     this.isAutoRefreshEnabled = true;
+    console.log(`StockHistory: Starting auto-refresh for ${tickers.length} tickers with ${this.refreshInterval} interval`);
 
-    
     // Set up interval-based updates using the market data endpoint
     const intervalMs = this.getIntervalMs(this.refreshInterval);
+    
+    // Create a timer that starts immediately and then repeats at intervals
     this.refreshSubscription = interval(intervalMs).pipe(
       takeUntil(this.destroy$),
-      switchMap(() => this.stockInfoService.getMarketDataUpdates(tickers))
+      switchMap(() => {
+        console.log(`StockHistory: Fetching market data updates for tickers: ${tickers.join(', ')}`);
+        return this.stockInfoService.getMarketDataUpdates(tickers);
+      })
     ).subscribe({
       next: (marketUpdates: any) => {
-
+        console.log('StockHistory: Received market data updates:', Object.keys(marketUpdates || {}).length, 'tickers updated');
         
         // Update only the market data fields in the existing stocks array
         this.updateMarketDataFields(marketUpdates);
       },
       error: (error: any) => {
-
+        console.error('StockHistory: Error in auto-refresh:', error);
+        
         // On error, try to restart auto-refresh after a delay
         setTimeout(() => {
           if (this.isAutoRefreshEnabled) {
-
+            console.log('StockHistory: Restarting auto-refresh after error');
             this.startAutoRefresh();
           }
         }, 5000);
+      }
+    });
+    
+    // Make an immediate call to get initial data
+    console.log('StockHistory: Making immediate market data call');
+    this.stockInfoService.getMarketDataUpdates(tickers).subscribe({
+      next: (marketUpdates: any) => {
+        console.log('StockHistory: Immediate call received:', Object.keys(marketUpdates || {}).length, 'tickers updated');
+        this.updateMarketDataFields(marketUpdates);
+      },
+      error: (error: any) => {
+        console.error('StockHistory: Error in immediate market data call:', error);
       }
     });
   }
@@ -536,10 +554,12 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
   }
 
   stopAutoRefresh() {
+    console.log('StockHistory: Stopping auto-refresh');
     this.isAutoRefreshEnabled = false;
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
       this.refreshSubscription = null;
+      console.log('StockHistory: Auto-refresh subscription unsubscribed');
     }
   }
 
