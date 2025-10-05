@@ -123,6 +123,39 @@
         </div>
       </div>
 
+      <!-- Weekly Email Management Section -->
+      <div class="weekly-email-management-section">
+        <h4>Weekly Email Reports</h4>
+        <div class="weekly-email-controls">
+          <div class="weekly-email-info">
+            <div class="info-card">
+              <h5>📧 Weekly Stock Summary Reports</h5>
+              <p>Send weekly stock summary reports to all eligible users. This includes:</p>
+              <ul>
+                <li>Sector-based stock performance analysis</li>
+                <li>Previous week's Monday-Friday trading data</li>
+                <li>Color-coded performance indicators</li>
+                <li>Professional HTML email format</li>
+              </ul>
+              <div class="email-schedule-info">
+                <span class="label">Automatic Schedule:</span>
+                <span class="value">Every Sunday at 5:00 PM PST</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="weekly-email-actions">
+            <button class="btn btn-primary btn-large" (click)="sendWeeklyEmail()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              📧 Send Weekly Email Reports
+            </button>
+            <div class="action-description">
+              <p><strong>Manual Trigger:</strong> Use this button to manually send weekly reports if the scheduler is not working.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Cache Status Overview -->
       <div class="cache-status-section">
         <h4>Cache Status Overview</h4>

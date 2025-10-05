@@ -220,4 +220,20 @@ export class AdminCacheComponent implements OnInit {
     // Return today's date in YYYY-MM-DD format
     return new Date().toISOString().split('T')[0];
   }
+
+  // Weekly Email Management Methods
+  sendWeeklyEmail() {
+    this.loading = true;
+    this.http.post(`${environment.stockApiBaseUrl}/api/admin/send-weekly-report`, {}).subscribe({
+      next: (response: any) => {
+        this.loading = false;
+        this.showMessage(`Weekly email reports sent successfully: ${response.emails_sent} emails sent to ${response.users_processed} users`, 'success');
+      },
+      error: (error) => {
+        console.error('Error sending weekly email:', error);
+        this.loading = false;
+        this.showMessage('Error sending weekly email reports', 'error');
+      }
+    });
+  }
 }
