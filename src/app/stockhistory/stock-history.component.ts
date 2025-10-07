@@ -67,6 +67,9 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
   // Refresh interval options
   refreshOptions: RefreshInterval[] = ['1M', '5M', '15M', '1H'];
 
+  // Analysis toggle
+  showAnalysis: boolean = false;
+
   /**
    * IMPORTANT: ALWAYS use this method to format market cap values in the UI.
    * Market cap values must be displayed as T (Trillion), B (Billion), M (Million), K (Thousand).
@@ -539,6 +542,16 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
           if (update.today.change !== 'N/A') {
             stock.today.change = update.today.change;
           }
+          // Update SMA values when provided
+          if (Object.prototype.hasOwnProperty.call(update.today, 'sma20')) {
+            stock.today.sma20 = update.today.sma20;
+          }
+          if (Object.prototype.hasOwnProperty.call(update.today, 'sma50')) {
+            stock.today.sma50 = update.today.sma50;
+          }
+          if (Object.prototype.hasOwnProperty.call(update.today, 'sma200')) {
+            stock.today.sma200 = update.today.sma200;
+          }
         }
         
         updatedCount++;
@@ -877,6 +890,22 @@ export class StockHistoryComponent implements OnInit, OnDestroy {
         case '1Y_percentage':
           aValue = this.parsePercentage(a['1Y']?.percentage || 'N/A');
           bValue = this.parsePercentage(b['1Y']?.percentage || 'N/A');
+          break;
+        case 'pe_ratio':
+          aValue = parseFloat((a.pe_ratio || '').toString()) || 0;
+          bValue = parseFloat((b.pe_ratio || '').toString()) || 0;
+          break;
+        case 'sma20':
+          aValue = a.today?.sma20 ?? -Infinity;
+          bValue = b.today?.sma20 ?? -Infinity;
+          break;
+        case 'sma50':
+          aValue = a.today?.sma50 ?? -Infinity;
+          bValue = b.today?.sma50 ?? -Infinity;
+          break;
+        case 'sma200':
+          aValue = a.today?.sma200 ?? -Infinity;
+          bValue = b.today?.sma200 ?? -Infinity;
           break;
         default:
           return 0;

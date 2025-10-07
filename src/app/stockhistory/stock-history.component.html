@@ -33,6 +33,12 @@
         </select>
         <span *ngIf="loading" class="filter-loading-spinner">⟳</span>
       </div>
+
+      <div class="analysis-toggle">
+        <label>
+          <input type="checkbox" [(ngModel)]="showAnalysis" /> Analysis
+        </label>
+      </div>
     </div>
     
     <div class="right-controls">
@@ -128,6 +134,23 @@
           1R {{ getSortIcon('1D_range') }}
           <span *ngIf="sortingLoading && isSorting('1D_range')" class="sorting-spinner">⟳</span>
         </th>
+        <!-- Analysis columns (shown when checkbox is checked) placed after 1R and before 5D -->
+        <th *ngIf="showAnalysis" class="sortable-header" [ngClass]="getSortingClass('pe_ratio')" (click)="sortByColumn('pe_ratio')">
+          P/E {{ getSortIcon('pe_ratio') }}
+          <span *ngIf="sortingLoading && isSorting('pe_ratio')" class="sorting-spinner">⟳</span>
+        </th>
+        <th *ngIf="showAnalysis" class="sortable-header" [ngClass]="getSortingClass('sma20')" (click)="sortByColumn('sma20')">
+          SMA20 {{ getSortIcon('sma20') }}
+          <span *ngIf="sortingLoading && isSorting('sma20')" class="sorting-spinner">⟳</span>
+        </th>
+        <th *ngIf="showAnalysis" class="sortable-header" [ngClass]="getSortingClass('sma50')" (click)="sortByColumn('sma50')">
+          SMA50 {{ getSortIcon('sma50') }}
+          <span *ngIf="sortingLoading && isSorting('sma50')" class="sorting-spinner">⟳</span>
+        </th>
+        <th *ngIf="showAnalysis" class="sortable-header" [ngClass]="getSortingClass('sma200')" (click)="sortByColumn('sma200')">
+          SMA200 {{ getSortIcon('sma200') }}
+          <span *ngIf="sortingLoading && isSorting('sma200')" class="sorting-spinner">⟳</span>
+        </th>
         <th class="sortable-header" [ngClass]="getSortingClass('5D_percentage')" (click)="sortByColumn('5D_percentage')">
            5D {{ getSortIcon('5D_percentage') }}
           <span *ngIf="sortingLoading && isSorting('5D_percentage')" class="sorting-spinner">⟳</span>
@@ -186,6 +209,11 @@
             {{ stock['1D']?.high_low_percentage || 'N/A' }}
           </span>
         </td>
+        <!-- Analysis values placed after 1R and before 5D -->
+        <td *ngIf="showAnalysis" class="pe-cell">{{ stock.pe_ratio || 'N/A' }}</td>
+        <td *ngIf="showAnalysis" class="sma-cell">{{ stock.today?.sma20 ?? 'N/A' }}</td>
+        <td *ngIf="showAnalysis" class="sma-cell">{{ stock.today?.sma50 ?? 'N/A' }}</td>
+        <td *ngIf="showAnalysis" class="sma-cell">{{ stock.today?.sma200 ?? 'N/A' }}</td>
         <td class="change-cell">
           <span [ngClass]="getPercentageChangeClass(stock['5D']?.percentage || 'N/A')">
             {{ stock['5D']?.percentage || 'N/A' }} L:{{ stock['5D']?.low || 'N/A' }} H:{{ stock['5D']?.high || 'N/A' }}

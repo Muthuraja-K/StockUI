@@ -26,6 +26,9 @@ export interface TodayData {
   prev_close: number;
   ah_change: string;
   change: string;
+  sma20?: number | null;
+  sma50?: number | null;
+  sma200?: number | null;
 }
 
 export interface EnhancedStockInfo {
@@ -33,6 +36,7 @@ export interface EnhancedStockInfo {
   sector: string;
   isleverage: boolean;
   market_cap: string;
+  pe_ratio?: string;
   earning_date: string;
   price: string;
   after_hour_price: string;

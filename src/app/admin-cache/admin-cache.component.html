@@ -123,6 +123,105 @@
         </div>
       </div>
 
+      <!-- Scheduler Status Section -->
+      <div class="scheduler-status-section">
+        <h4>Background Scheduler Status</h4>
+        <div class="scheduler-controls">
+          <div class="scheduler-info" *ngIf="schedulerStatus">
+            <div class="info-card">
+              <h5>⚙️ Background Scheduler</h5>
+              <div class="scheduler-status-grid">
+                <div class="status-item">
+                  <span class="label">Scheduler Running:</span>
+                  <span class="value" [ngClass]="schedulerStatus.running ? 'status-active' : 'status-inactive'">
+                    {{ schedulerStatus.running ? '✅ Active' : '❌ Inactive' }}
+                  </span>
+                </div>
+                <div class="status-item">
+                  <span class="label">History Populated Today:</span>
+                  <span class="value" [ngClass]="schedulerStatus.history_populated_today ? 'status-active' : 'status-inactive'">
+                    {{ schedulerStatus.history_populated_today ? '✅ Yes' : '❌ No' }}
+                  </span>
+                </div>
+              <div class="status-item">
+                <span class="label">Weekly Email Sent:</span>
+                <span class="value" [ngClass]="schedulerStatus.weekly_email_sent_this_week ? 'status-active' : 'status-inactive'">
+                  {{ schedulerStatus.weekly_email_sent_this_week ? '✅ Sent' : '❌ Not Sent' }}
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">SMA Email Sent Today:</span>
+                <span class="value" [ngClass]="schedulerStatus.sma_email_sent_today ? 'status-active' : 'status-inactive'">
+                  {{ schedulerStatus.sma_email_sent_today ? '✅ Sent' : '❌ Not Sent' }}
+                </span>
+              </div>
+                <div class="status-item">
+                  <span class="label">Market Status:</span>
+                  <span class="value">{{ schedulerStatus.market_status?.status || 'Unknown' }}</span>
+                </div>
+                <div class="status-item">
+                  <span class="label">Should Run Scheduler:</span>
+                  <span class="value" [ngClass]="schedulerStatus.should_run_scheduler ? 'status-active' : 'status-inactive'">
+                    {{ schedulerStatus.should_run_scheduler ? '✅ Yes' : '❌ No' }}
+                  </span>
+                </div>
+                <div class="status-item">
+                  <span class="label">Last Check:</span>
+                  <span class="value">{{ formatDate(schedulerStatus.last_check) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="scheduler-actions">
+            <button class="btn btn-primary" (click)="loadSchedulerStatus()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              Refresh Scheduler Status
+            </button>
+            <div class="action-description">
+              <p><strong>Monitor:</strong> Check if the background scheduler is running and performing its tasks correctly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SMA Email Management Section -->
+      <div class="sma-email-management-section">
+        <h4>SMA Email Reports</h4>
+        <div class="sma-email-controls">
+          <div class="sma-email-info">
+            <div class="info-card">
+              <h5>📈 SMA Alert Reports</h5>
+              <p>Send daily SMA (Simple Moving Average) alert reports to all eligible users. This includes:</p>
+              <ul>
+                <li>Stocks meeting SMA threshold criteria</li>
+                <li>Current price vs SMA analysis</li>
+                <li>Percentage deviation from SMA</li>
+                <li>Technical analysis insights</li>
+              </ul>
+              <div class="email-schedule-info">
+                <span class="label">Automatic Schedule:</span>
+                <span class="value">Daily at 4:00 PM EST</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="sma-email-actions">
+            <button class="btn btn-primary btn-large" (click)="sendSMAEmail()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              📈 Send SMA Alert Report
+            </button>
+            <button class="btn btn-secondary" (click)="runSMACheck()" [disabled]="loading">
+              <span *ngIf="loading" class="spinner">⟳</span>
+              🔍 Run SMA Check Only
+            </button>
+            <div class="action-description">
+              <p><strong>Manual Trigger:</strong> Use these buttons to manually send SMA reports or run SMA checks if the scheduler is not working.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Weekly Email Management Section -->
       <div class="weekly-email-management-section">
         <h4>Weekly Email Reports</h4>
@@ -156,86 +255,6 @@
         </div>
       </div>
 
-      <!-- Cache Status Overview -->
-      <div class="cache-status-section">
-        <h4>Cache Status Overview</h4>
-        <div class="cache-status-grid">
-          <div class="cache-status-card" *ngFor="let cache of cacheOverview.cache_status">
-            <div class="cache-header">
-              <h5>{{ cache.name }}</h5>
-              <span class="status-badge" [ngClass]="getCacheStatusClass(cache.status)">
-                {{ cache.status }}
-              </span>
-            </div>
-            <div class="cache-details">
-              <div class="detail-item">
-                <span class="label">Last Updated:</span>
-                <span class="value">{{ formatDate(cache.last_updated) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Size:</span>
-                <span class="value">{{ formatFileSize(cache.size_bytes) }}</span>
-              </div>
-              <div class="detail-item" *ngIf="cache.expires_at">
-                <span class="label">Expires:</span>
-                <span class="value">{{ formatDate(cache.expires_at) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- File Status Overview -->
-      <div class="file-status-section">
-        <h4>Data File Status</h4>
-        <div class="file-status-grid">
-          <div class="file-status-card" *ngFor="let file of cacheOverview.file_status">
-            <div class="file-header">
-              <h5>{{ file.name }}</h5>
-              <span class="status-badge" [ngClass]="getCacheStatusClass(file.status)">
-                {{ file.status }}
-              </span>
-            </div>
-            <div class="file-details">
-              <div class="detail-item">
-                <span class="label">Last Modified:</span>
-                <span class="value">{{ formatDate(file.last_modified) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Size:</span>
-                <span class="value">{{ formatFileSize(file.size_bytes) }}</span>
-              </div>
-              <div class="detail-item" *ngIf="file.records_count !== undefined">
-                <span class="label">Records:</span>
-                <span class="value">{{ file.records_count.toLocaleString() }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Information -->
-      <div class="system-info-section">
-        <h4>System Information</h4>
-        <div class="system-info-grid">
-          <div class="info-item">
-            <span class="label">Total Cache Size:</span>
-            <span class="value">{{ formatFileSize(cacheOverview.total_cache_size) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Total File Size:</span>
-            <span class="value">{{ formatFileSize(cacheOverview.total_file_size) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Active Caches:</span>
-            <span class="value">{{ cacheOverview.active_caches_count }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Last Check:</span>
-            <span class="value">{{ formatDate(cacheOverview.last_check) }}</span>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- No Data Message -->

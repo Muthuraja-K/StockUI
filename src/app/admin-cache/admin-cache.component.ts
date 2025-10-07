@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../environments/environment';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-admin-cache',
@@ -14,6 +14,7 @@ import { environment } from '../../environments/environment';
 export class AdminCacheComponent implements OnInit {
   cacheOverview: any = null;
   earningsStatus: any = null;
+  schedulerStatus: any = null;
   loading = false;
   message = '';
   messageType: 'success' | 'error' | 'info' = 'info';
@@ -24,6 +25,7 @@ export class AdminCacheComponent implements OnInit {
   ngOnInit() {
     this.loadCacheOverview();
     this.loadEarningsStatus();
+    this.loadSchedulerStatus();
   }
 
   loadCacheOverview() {
@@ -221,6 +223,45 @@ export class AdminCacheComponent implements OnInit {
     return new Date().toISOString().split('T')[0];
   }
 
+  // SMA Email Management Methods
+  sendSMAEmail() {
+    this.loading = true;
+    this.http.post(`${environment.stockApiBaseUrl}/api/admin/send-sma-report`, {}).subscribe({
+      next: (response: any) => {
+        this.loading = false;
+        if (response.success) {
+          this.showMessage(`SMA alert report sent successfully: ${response.threshold_stocks} stocks meet threshold`, 'success');
+        } else {
+          this.showMessage(`SMA report processed but email may not have been sent: ${response.message}`, 'info');
+        }
+      },
+      error: (error) => {
+        console.error('Error sending SMA email:', error);
+        this.loading = false;
+        this.showMessage('Error sending SMA alert report', 'error');
+      }
+    });
+  }
+
+  runSMACheck() {
+    this.loading = true;
+    this.http.post(`${environment.stockApiBaseUrl}/api/admin/run-sma-check`, {}).subscribe({
+      next: (response: any) => {
+        this.loading = false;
+        if (response.success) {
+          this.showMessage(`SMA check completed: ${response.threshold_stocks} stocks meet threshold out of ${response.stocks_checked} checked`, 'success');
+        } else {
+          this.showMessage(`SMA check failed: ${response.message}`, 'error');
+        }
+      },
+      error: (error) => {
+        console.error('Error running SMA check:', error);
+        this.loading = false;
+        this.showMessage('Error running SMA check', 'error');
+      }
+    });
+  }
+
   // Weekly Email Management Methods
   sendWeeklyEmail() {
     this.loading = true;
@@ -233,6 +274,19 @@ export class AdminCacheComponent implements OnInit {
         console.error('Error sending weekly email:', error);
         this.loading = false;
         this.showMessage('Error sending weekly email reports', 'error');
+      }
+    });
+  }
+
+  // Scheduler Status Methods
+  loadSchedulerStatus() {
+    this.http.get(`${environment.stockApiBaseUrl}/api/scheduler/status`).subscribe({
+      next: (response: any) => {
+        this.schedulerStatus = response;
+      },
+      error: (error) => {
+        console.error('Error loading scheduler status:', error);
+        this.showMessage('Error loading scheduler status', 'error');
       }
     });
   }
